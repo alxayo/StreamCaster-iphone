@@ -5,11 +5,29 @@
 // SwiftUI uses the @main attribute to know where the app starts.
 
 import SwiftUI
+import AVFoundation
 
 /// This is the starting point of the app.
 /// The @main attribute tells Swift "run this first."
 /// We use @UIApplicationDelegateAdaptor to connect our AppDelegate
 /// so we can still use UIKit lifecycle events (like orientation control).
+///
+/// APP NAVIGATION STRUCTURE:
+/// ┌─ StreamView (Main Screen) ─────────────────────┐
+/// │  Camera preview + streaming controls             │
+/// │  [Settings ⚙️] button → opens Settings          │
+/// ├──────────────────────────────────────────────────┤
+/// │                                                  │
+/// │  Settings (Sheet)                                │
+/// │  ├── Endpoint Setup (RTMP URL, keys, profiles)   │
+/// │  ├── Video & Audio Settings                      │
+/// │  └── General Settings                            │
+/// └──────────────────────────────────────────────────┘
+///
+/// ON FIRST LAUNCH:
+/// If Camera or Microphone permissions haven't been granted yet,
+/// the app shows the PermissionRequestView instead of StreamView.
+/// Once all required permissions are granted, the user sees StreamView.
 @main
 struct StreamCasterApp: App {
 
@@ -44,15 +62,36 @@ struct StreamCasterApp: App {
     /// Stores the recovery result so we can reference it in the alert.
     @State private var recoveryResult: TerminationRecovery.RecoveryResult?
 
+    // MARK: - Permission State
+
+    /// Tracks whether the user has granted the required permissions
+    /// (camera and microphone). We check this on every launch.
+    @State private var hasRequiredPermissions = false
+
+    /// Whether we've finished the initial permission check.
+    /// Prevents a flash of the wrong screen on launch.
+    @State private var hasCheckedPermissions = false
+
     var body: some Scene {
         // WindowGroup is the main window of the app.
         // Everything the user sees starts here.
         WindowGroup {
-            // TODO: Replace this placeholder with the real streaming UI
             ZStack {
-                Text("StreamCaster")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
+                // ── Main Content ──
+                // Show the permission screen until the user has granted
+                // camera + microphone access. After that, show StreamView.
+                if !hasCheckedPermissions {
+                    // Brief blank screen while we check permission status.
+                    // This avoids flashing the wrong screen on launch.
+                    Color("DarkSurface", bundle: nil)
+                        .ignoresSafeArea()
+                } else if hasRequiredPermissions {
+                    // All required permissions are granted — show the stream!
+                    StreamView()
+                } else {
+                    // Permissions are missing — ask the user to grant them.
+                    PermissionRequestView()
+                }
 
                 // ── Security Curtain ──
                 // When the scene is inactive, cover everything with an
@@ -61,6 +100,23 @@ struct StreamCasterApp: App {
                 if scenePhase == .inactive {
                     SecurityCurtainView()
                 }
+            }
+            // ── Permission Check ──
+            // On every launch, check if camera and microphone access
+            // have been granted. These are the minimum permissions
+            // needed for streaming.
+            .onAppear {
+                checkRequiredPermissions()
+            }
+            // ── Re-check When Returning From Settings ──
+            // The user might grant permissions in the iOS Settings app.
+            // When they return, we re-check so the UI updates immediately.
+            .onReceive(
+                NotificationCenter.default.publisher(
+                    for: UIApplication.willEnterForegroundNotification
+                )
+            ) { _ in
+                checkRequiredPermissions()
             }
             // ── Termination Recovery ──
             // On first launch, check if the previous session was killed
@@ -101,6 +157,22 @@ struct StreamCasterApp: App {
                 }
             }
         }
+    }
+
+    // MARK: - Permission Helpers
+
+    /// Checks whether Camera and Microphone permissions have been granted.
+    /// These two are required for streaming — without them, the app can't
+    /// capture video or audio.
+    private func checkRequiredPermissions() {
+        let cameraStatus = AVCaptureDevice.authorizationStatus(for: .video)
+        let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
+
+        // Both camera AND microphone must be authorized.
+        hasRequiredPermissions = (cameraStatus == .authorized && micStatus == .authorized)
+
+        // Mark that we've completed the initial check.
+        hasCheckedPermissions = true
     }
 }
 

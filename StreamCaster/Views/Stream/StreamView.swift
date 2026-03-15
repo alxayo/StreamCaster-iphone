@@ -255,11 +255,10 @@ struct StreamView: View {
                 )
         }
         .sheet(isPresented: $showSettings) {
-            // Placeholder for the settings view
-            // TODO: Replace with actual SettingsView when implemented
-            Text("Settings")
-                .font(.title)
-                .padding()
+            // Present the settings hub as a modal sheet.
+            // Users can navigate to Endpoint, Video/Audio, and General
+            // settings from within this sheet.
+            SettingsRootView()
         }
     }
 }
