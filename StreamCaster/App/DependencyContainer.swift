@@ -93,6 +93,25 @@ final class DependencyContainer {
         ExponentialBackoffReconnectPolicy()
     }()
 
+    /// Manages the RTMP connection lifecycle: connecting, detecting
+    /// network drops, and auto-reconnecting with exponential backoff.
+    /// Uses the shared reconnectPolicy for retry timing.
+    lazy var connectionManager: ConnectionManager = {
+        ConnectionManager(reconnectPolicy: reconnectPolicy)
+    }()
+
+    // MARK: - Encoder Controller
+
+    /// Serializes all encoder quality changes from ABR and thermal systems.
+    /// Because it's a Swift actor, concurrent requests are automatically
+    /// queued — only one change happens at a time.
+    ///
+    /// Uses a factory method so callers can provide the initial StreamConfig
+    /// at stream start time (the config isn't known until the user taps "Go Live").
+    func makeEncoderController(initialConfig: StreamConfig) -> EncoderController {
+        EncoderController(encoderBridge: encoderBridge, initialConfig: initialConfig)
+    }
+
     // MARK: - Overlay
 
     /// Processes each video frame before encoding, allowing overlays
@@ -118,7 +137,6 @@ final class DependencyContainer {
     /// handles interruptions (phone calls, Siri), and reports when the
     /// audio route changes (headphones plugged in, Bluetooth connected).
     lazy var audioSessionManager: AudioSessionManagerProtocol = {
-        // TODO: Replace with real implementation (e.g., AVAudioSessionManager)
-        fatalError("AudioSessionManager not yet implemented")
+        AudioSessionManager()
     }()
 }
