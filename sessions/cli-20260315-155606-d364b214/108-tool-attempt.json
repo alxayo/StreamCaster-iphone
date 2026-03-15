@@ -1,0 +1,9 @@
+{
+  "sessionId": "cli-20260315-155606-d364b214",
+  "toolName": "sql",
+  "toolArgs": {
+    "description": "Verify and query ready",
+    "query": "SELECT t.id, t.title, t.status FROM todos t WHERE t.status != 'done' ORDER BY id;"
+  },
+  "timestamp": 1773592704862
+}
