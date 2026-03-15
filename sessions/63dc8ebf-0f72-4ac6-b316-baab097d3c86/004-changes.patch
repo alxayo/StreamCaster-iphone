@@ -1,0 +1,13 @@
+diff --git a/.github/hooks/scripts/audit-common.sh b/.github/hooks/scripts/audit-common.sh
+index 43dfeed..1cc2d44 100755
+--- a/.github/hooks/scripts/audit-common.sh
++++ b/.github/hooks/scripts/audit-common.sh
+@@ -75,7 +75,7 @@ load_config() {
+     exit 2
+   fi
+ 
+-  if [[ ! -d "$AUDIT_REPO/.git" ]]; then
++  if [[ ! -d "$AUDIT_REPO/.git" && ! -f "$AUDIT_REPO/.git" ]]; then
+     echo "ERROR: $AUDIT_REPO is not a git repository" >&2
+     exit 2
+   fi
