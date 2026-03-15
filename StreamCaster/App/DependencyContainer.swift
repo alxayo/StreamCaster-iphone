@@ -114,6 +114,35 @@ final class DependencyContainer {
         EncoderController(encoderBridge: encoderBridge, initialConfig: initialConfig)
     }
 
+    // MARK: - Adaptive Bitrate (ABR)
+
+    /// Creates an ABR policy that monitors stream health and automatically
+    /// adjusts quality up or down based on network conditions.
+    ///
+    /// Uses a factory method because ABR needs:
+    /// 1. An EncoderController (created at stream start)
+    /// 2. The initial StreamConfig (chosen by the user)
+    /// Both are only available when the user taps "Go Live."
+    ///
+    /// The device tier is read from the capability query so the ABR
+    /// ladder is tailored to what this specific device can handle.
+    func makeAbrPolicy(
+        encoderController: EncoderController,
+        initialConfig: StreamConfig
+    ) -> AbrPolicy {
+        // Get the device tier (1 = old, 2 = mid, 3 = flagship).
+        // If the capability query isn't the real AVDeviceCapabilityQuery
+        // (e.g., in tests), default to tier 2 (mid-range).
+        let tier = (deviceCapabilityQuery as? AVDeviceCapabilityQuery)?
+            .deviceTier.rawValue ?? DeviceTier.tier2.rawValue
+
+        return AbrPolicy(
+            encoderController: encoderController,
+            startingConfig: initialConfig,
+            deviceTier: tier
+        )
+    }
+
     // MARK: - Overlay
 
     /// Processes each video frame before encoding, allowing overlays
