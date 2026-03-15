@@ -1,0 +1,7 @@
+{
+  "sessionId": "cli-20260315-155606-d364b214",
+  "toolName": "bash",
+  "resultType": "success",
+  "textResultForLlm": "099eb9a feat: implement SwiftUI navigation connecting all screens\n5eefa08 feat: implement RTMP connection test button\n6b64ddd feat: implement stream screen UI with controls and HUD\n8f8fe55 feat: implement adaptive bitrate system with quality ladder\n0af3ed7 feat: add thermal monitor and camera interruption handler\ncf40167 feat: add termination recovery, session monitor, security curtain\n5d5e539 feat: implement camera switching (front/back toggle)\nc65ead5 feat: enforce RTMPS transport security for credentials\neb37abc feat: add camera preview view with UIViewRepresentable\n500a9bd feat: add audio interruption handling and battery monitoring\n3b74d0b feat: implement HaishinKit encoder bridge for RTMP streaming\nb2ac616 feat: implement ConnectionManager with auto-reconnect\n9660589 feat: implement StreamViewModel bridging engine to SwiftUI\nc2fa312 feat: implement StreamingEngine core with state machine\n2607b3e feat: add settings screens for video, audio, and general config\nadf436c feat: implement orientation lock during streaming\nf3cf7c3 feat: implement UserDefaults-based settings repository\n3863bbf feat: implement AVFoundation device capability query\n3da4fb9 feat: add overlay stub and crash report configurator\n8b797c9 feat: implement DI container with protocol bindings\n<exited with exit code 0>",
+  "timestamp": 1773592946657
+}
