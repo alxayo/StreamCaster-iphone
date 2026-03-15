@@ -80,9 +80,11 @@ final class DependencyContainer {
     /// Low-level bridge to the encoding/publishing library (HaishinKit).
     /// The streaming engine talks to this instead of calling HaishinKit
     /// directly, so we can swap libraries or use a mock in tests.
-    /// Currently using a stub — T-007b will replace with HaishinKit.
+    ///
+    /// Uses the real HaishinKit bridge in production. For unit tests,
+    /// inject `StubEncoderBridge` via the test initializer instead.
     lazy var encoderBridge: EncoderBridge = {
-        StubEncoderBridge()
+        HaishinKitEncoderBridge()
     }()
 
     /// Decides how long to wait between automatic reconnect attempts
