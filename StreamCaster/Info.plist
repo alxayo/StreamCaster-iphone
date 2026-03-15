@@ -61,7 +61,7 @@
 
 	<!-- Local network (RTMP servers) permission prompt -->
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>StreamCaster uses local network to connect to RTMP streaming servers.</string>
+	<string>StreamCaster uses local network access to connect to RTMP streaming servers on your network.</string>
 
 	<!-- ============================================================ -->
 	<!-- Background Modes: allows the app to keep running in the       -->
@@ -72,5 +72,26 @@
 	<array>
 		<string>audio</string>
 	</array>
+
+	<!-- Supports indirect input events (pointer, keyboard, etc.) -->
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+
+	<!-- Modern launch screen (replaces storyboard-based launch screen) -->
+	<key>UILaunchScreen</key>
+	<dict/>
+
+	<!-- Supported device orientations -->
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+
+	<!-- No custom encryption — RTMPS uses system TLS only -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
