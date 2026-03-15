@@ -1,0 +1,9 @@
+{
+  "sessionId": "cli-20260315-155606-d364b214",
+  "toolName": "sql",
+  "toolArgs": {
+    "description": "Check all remaining todos",
+    "query": "SELECT id, title, status FROM todos WHERE status != 'done' ORDER BY id;"
+  },
+  "timestamp": 1773592467009
+}
