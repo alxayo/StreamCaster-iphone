@@ -1,0 +1,9 @@
+{
+  "sessionId": "cli-20260315-155606-d364b214",
+  "toolName": "sql",
+  "toolArgs": {
+    "description": "Query ready todos",
+    "query": "SELECT t.id, t.title FROM todos t WHERE t.status = 'pending' AND NOT EXISTS (SELECT 1 FROM todo_deps td JOIN todos dep ON td.depends_on = dep.id WHERE td.todo_id = t.id AND dep.status != 'done');"
+  },
+  "timestamp": 1773592463897
+}
