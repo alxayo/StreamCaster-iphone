@@ -141,4 +141,13 @@ final class DependencyContainer {
     lazy var audioSessionManager: AudioSessionManagerProtocol = {
         AudioSessionManager()
     }()
+
+    // MARK: - Battery
+
+    /// Monitors the device's battery level during streaming.
+    /// Warns the user at a configurable threshold (default 5%) and
+    /// auto-stops the stream at critical level (≤ 2%) to prevent data loss.
+    lazy var batteryMonitor: BatteryMonitor = {
+        BatteryMonitor(settingsRepository: settingsRepository)
+    }()
 }
