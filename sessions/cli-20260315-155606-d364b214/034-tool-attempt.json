@@ -1,0 +1,9 @@
+{
+  "sessionId": "cli-20260315-155606-d364b214",
+  "toolName": "sql",
+  "toolArgs": {
+    "description": "Check todo status",
+    "query": "SELECT id, title, status FROM todos WHERE id IN ('T-001', 'T-002');"
+  },
+  "timestamp": 1773590676307
+}
