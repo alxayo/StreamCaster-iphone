@@ -1,0 +1,33 @@
+# macOS
+.DS_Store
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Xcode user-specific data
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcuserdatad/
+
+# Build artifacts
+build/
+DerivedData/
+
+# Swift Package Manager
+.build/
+Packages/
+Package.resolved
+
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build/
+
+# Fastlane outputs
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output/
