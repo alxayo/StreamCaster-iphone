@@ -75,6 +75,11 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     /// Repository for reading user settings (resolution, bitrate, etc.).
     private let settingsRepository: SettingsRepository
 
+    /// Manages the iOS audio session — muting, unmuting, and handling
+    /// audio interruptions. We call mute()/unmute() here so the actual
+    /// audio hardware reflects the snapshot's mute state.
+    private let audioSessionManager: AudioSessionManagerProtocol
+
     // MARK: - Init
 
     /// Private init prevents anyone from creating a second engine.
@@ -87,17 +92,20 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         self.encoderBridge = container.encoderBridge
         self.profileRepository = container.endpointProfileRepository
         self.settingsRepository = container.settingsRepository
+        self.audioSessionManager = container.audioSessionManager
     }
 
     /// Internal init used for testing — lets us inject mock dependencies.
     init(
         encoderBridge: EncoderBridge,
         profileRepository: EndpointProfileRepository,
-        settingsRepository: SettingsRepository
+        settingsRepository: SettingsRepository,
+        audioSessionManager: AudioSessionManagerProtocol
     ) {
         self.encoderBridge = encoderBridge
         self.profileRepository = profileRepository
         self.settingsRepository = settingsRepository
+        self.audioSessionManager = audioSessionManager
     }
 
     // MARK: - Stream Lifecycle
@@ -199,34 +207,66 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
 
     /// Toggle the microphone mute on/off.
     /// When muted, the stream stays alive but audio is silent.
+    ///
+    /// This does TWO things:
+    ///   1. Updates the coordinator snapshot (so the UI shows the right icon).
+    ///   2. Tells the AudioSessionManager to actually mute/unmute the mic.
     func toggleMute() {
         // We use Task here because the coordinator is an actor, so we
         // need an async context to talk to it.
         Task {
+            // Step 1: Toggle the mute flag in the snapshot.
             let snapshot = await coordinator.toggleMute()
             applySnapshot(snapshot)
+
+            // Step 2: Tell the audio session manager to actually mute or
+            // unmute the hardware microphone. Without this, the snapshot
+            // says "muted" but the mic is still capturing audio!
+            if snapshot.media.audioMuted {
+                audioSessionManager.mute()
+            } else {
+                audioSessionManager.unmute()
+            }
         }
     }
 
     /// Switch between the front and back camera.
+    ///
+    /// How it works:
+    ///   1. Read the current camera position from settings.
+    ///   2. Calculate the opposite position (front ↔ back).
+    ///   3. Detach the current camera (release the hardware).
+    ///   4. Attach the new camera.
+    ///   5. Save the new position so it persists across app launches.
+    ///
+    /// If the switch fails, we revert to the previous camera so the
+    /// user doesn't end up with a black screen.
+    ///
+    /// Works both before streaming (preview) and during a live stream.
     func switchCamera() {
         Task {
-            // Ask the coordinator which camera we're switching TO.
+            // Only switch if video is currently active. If video is off
+            // (e.g., audio-only mode), there's no camera to switch.
             let snapshot = await coordinator.snapshot
-
-            // Only switch if video is active.
             guard snapshot.media.videoActive else { return }
 
-            // Determine the new position (toggle front ↔ back).
-            // We use the settings repository to remember the last position.
-            let currentPosition = settingsRepository.getDefaultCameraPosition()
-            let newPosition: AVCaptureDevice.Position =
-                (currentPosition == .front) ? .back : .front
+            // Step 1: Figure out which camera we're currently using.
+            let previousPosition = settingsRepository.getDefaultCameraPosition()
 
-            // Tell the encoder to switch cameras.
+            // Step 2: Calculate the opposite camera position.
+            // If we're on front, switch to back. If back, switch to front.
+            let newPosition: AVCaptureDevice.Position =
+                (previousPosition == .front) ? .back : .front
+
+            // Step 3: Detach the current camera first.
+            // This cleanly releases the hardware before we grab a new camera.
+            encoderBridge.detachCamera()
+
+            // Step 4: Attach the new camera.
             encoderBridge.attachCamera(position: newPosition)
 
-            // Save the new position so it persists across app launches.
+            // Step 5: Save the new position so it persists across app launches
+            // and so other parts of the engine know which camera is active.
             settingsRepository.setDefaultCameraPosition(newPosition)
         }
     }
