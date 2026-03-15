@@ -129,8 +129,16 @@ final class DependencyContainer {
     /// When the device overheats, the streaming engine can reduce
     /// quality automatically (lower bitrate, drop frame rate).
     lazy var thermalMonitor: ThermalMonitorProtocol = {
-        // TODO: Replace with real implementation (e.g., ProcessInfoThermalMonitor)
-        fatalError("ThermalMonitor not yet implemented")
+        ThermalMonitor()
+    }()
+
+    // MARK: - Camera Interruption
+
+    /// Detects when iOS takes the camera away (background, another app,
+    /// system pressure) and notifies the streaming engine so it can
+    /// switch to audio-only mode or stop gracefully.
+    lazy var cameraInterruptionHandler: CameraInterruptionHandler = {
+        CameraInterruptionHandler()
     }()
 
     // MARK: - Audio
