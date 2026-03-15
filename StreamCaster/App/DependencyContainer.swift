@@ -57,8 +57,7 @@ final class DependencyContainer {
     /// Manages RTMP endpoint profiles (server URL + stream key).
     /// Sensitive data like stream keys are stored in the iOS Keychain.
     lazy var endpointProfileRepository: EndpointProfileRepository = {
-        // TODO: Replace with real implementation (e.g., KeychainEndpointProfileRepository)
-        fatalError("EndpointProfileRepository not yet implemented")
+        KeychainEndpointProfileRepository()
     }()
 
     // MARK: - Camera
@@ -66,8 +65,7 @@ final class DependencyContainer {
     /// Queries the device hardware to find out which cameras, resolutions,
     /// and frame rates are available on this specific iPhone/iPad.
     lazy var deviceCapabilityQuery: DeviceCapabilityQuery = {
-        // TODO: Replace with real implementation (e.g., AVFoundationDeviceCapabilityQuery)
-        fatalError("DeviceCapabilityQuery not yet implemented")
+        AVDeviceCapabilityQuery()
     }()
 
     // MARK: - Streaming Services
