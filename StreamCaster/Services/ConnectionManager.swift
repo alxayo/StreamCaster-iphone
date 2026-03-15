@@ -312,6 +312,43 @@ final class ConnectionManager {
         scheduleNextAttempt()
     }
 
+    // MARK: - Transport Security
+
+    /// Validate transport security before connecting to an RTMP server.
+    ///
+    /// This checks whether the profile's URL and credentials are safe
+    /// to use together. If credentials would be sent over plaintext
+    /// (rtmp:// instead of rtmps://), the connection is blocked and
+    /// a `.disconnected(.errorAuth)` event is emitted.
+    ///
+    /// - Parameter profile: The endpoint profile the user wants to connect to.
+    /// - Returns: The `ValidationResult`. Callers should check this before
+    ///   proceeding with the actual RTMP connection.
+    func validateTransportSecurity(
+        profile: EndpointProfile
+    ) -> TransportSecurityValidator.ValidationResult {
+        let result = TransportSecurityValidator.validate(profile: profile)
+
+        switch result {
+        case .blockedPlaintextWithCredentials:
+            // Hard-block: credentials over plaintext is never allowed.
+            // Emit an auth error so the engine knows the connection was rejected.
+            cancelReconnect()
+            onConnectionEvent?(.disconnected(reason: .errorAuth))
+
+        case .warningPlaintext:
+            // Plain RTMP without credentials — the caller decides whether
+            // to proceed or show a warning to the user.
+            break
+
+        case .allowed:
+            // RTMPS — all good, nothing to do here.
+            break
+        }
+
+        return result
+    }
+
     // MARK: - Cleanup
 
     deinit {
