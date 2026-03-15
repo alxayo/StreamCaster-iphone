@@ -66,8 +66,14 @@ class EndpointSettingsViewModel: ObservableObject {
     /// Human-readable error message shown if a save/delete fails.
     @Published var saveError: String?
 
-    /// Placeholder for a future connection-test result (T-028).
+    /// The result message from the last connection test (nil = no test run yet).
     @Published var testConnectionResult: String?
+
+    /// The icon to show next to the test result (e.g., ✅, ❌, ⏱).
+    @Published var testResultIcon: String?
+
+    /// `true` while a connection test is in progress (shows a spinner).
+    @Published var isTestingConnection: Bool = false
 
     // ──────────────────────────────────────────────────────────
     // MARK: - Dependencies
@@ -191,12 +197,69 @@ class EndpointSettingsViewModel: ObservableObject {
         password = ""
         saveError = nil
         testConnectionResult = nil
+        testResultIcon = nil
+        isTestingConnection = false
     }
 
-    /// Placeholder for future connection testing (T-028).
-    /// For now it just sets a message so the UI has something to show.
+    /// Run a lightweight connection test against the current form values.
+    ///
+    /// This builds a temporary EndpointProfile from the form fields
+    /// and passes it to `ConnectionTester.test(profile:)`. The result
+    /// is shown in the UI with an appropriate icon.
     func testConnection() {
-        testConnectionResult = "Connection test not yet implemented (T-028)."
+        // Don't start a second test while one is already running.
+        guard !isTestingConnection else { return }
+
+        // Clear previous results and show the loading spinner.
+        testConnectionResult = nil
+        testResultIcon = nil
+        isTestingConnection = true
+
+        // Build a temporary profile from the current form fields.
+        // We don't need a real ID — this profile won't be saved.
+        let profile = EndpointProfile(
+            id: "test-\(UUID().uuidString)",
+            name: "Connection Test",
+            rtmpUrl: rtmpUrl,
+            streamKey: streamKey,
+            username: username.isEmpty ? nil : username,
+            password: password.isEmpty ? nil : password
+        )
+
+        // Run the test in a background Task so the UI stays responsive.
+        Task {
+            let result = await ConnectionTester.test(profile: profile)
+
+            // Map the result to an icon and message for the UI.
+            switch result {
+            case .success(let message):
+                testResultIcon = "✅"
+                testConnectionResult = message
+
+            case .timeout(let message):
+                testResultIcon = "⏱"
+                testConnectionResult = message
+
+            case .authFailure(let message):
+                testResultIcon = "❌"
+                testConnectionResult = message
+
+            case .tlsError(let message):
+                testResultIcon = "❌"
+                testConnectionResult = message
+
+            case .securityBlocked(let message):
+                testResultIcon = "🔒"
+                testConnectionResult = message
+
+            case .networkError(let message):
+                testResultIcon = "❌"
+                testConnectionResult = message
+            }
+
+            // Hide the loading spinner.
+            isTestingConnection = false
+        }
     }
 
     // ──────────────────────────────────────────────────────────

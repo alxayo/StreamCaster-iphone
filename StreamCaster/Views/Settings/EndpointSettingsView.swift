@@ -121,25 +121,42 @@ struct EndpointSettingsView: View {
             }
 
             // ──────────────────────────────────────────────
-            // MARK: - Test Connection (Placeholder for T-028)
+            // MARK: - Test Connection
             // ──────────────────────────────────────────────
             Section {
                 Button {
                     viewModel.testConnection()
                 } label: {
-                    Label("Test Connection", systemImage: "antenna.radiowaves.left.and.right")
-                }
-                // Disable if there's no URL to test
-                .disabled(viewModel.rtmpUrl.trimmingCharacters(in: .whitespaces).isEmpty)
+                    HStack {
+                        Label("Test Connection", systemImage: "antenna.radiowaves.left.and.right")
 
-                // Show test result when available
-                if let result = viewModel.testConnectionResult {
-                    Text(result)
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
+                        // Show a spinner while the test is running
+                        if viewModel.isTestingConnection {
+                            Spacer()
+                            ProgressView()
+                        }
+                    }
+                }
+                // Disable if there's no URL to test, or a test is already running
+                .disabled(
+                    viewModel.rtmpUrl.trimmingCharacters(in: .whitespaces).isEmpty
+                    || viewModel.isTestingConnection
+                )
+
+                // Show test result with an icon when available
+                if let icon = viewModel.testResultIcon,
+                   let message = viewModel.testConnectionResult {
+                    HStack(alignment: .top, spacing: 8) {
+                        Text(icon)
+                        Text(message)
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                    }
                 }
             } header: {
                 Text("Connection")
+            } footer: {
+                Text("Tests transport connectivity only — does not verify stream key or publish ability.")
             }
 
             // ──────────────────────────────────────────────
