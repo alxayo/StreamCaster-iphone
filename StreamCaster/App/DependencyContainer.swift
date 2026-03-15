@@ -72,17 +72,17 @@ final class DependencyContainer {
 
     /// The main streaming engine — connects to the RTMP server, manages
     /// the camera/microphone, and publishes real-time state updates.
+    /// Uses the singleton instance so all parts of the app share one engine.
     lazy var streamingEngine: StreamingEngineProtocol = {
-        // TODO: Replace with real implementation (e.g., StreamingEngine)
-        fatalError("StreamingEngine not yet implemented")
+        StreamingEngine.shared
     }()
 
     /// Low-level bridge to the encoding/publishing library (HaishinKit).
     /// The streaming engine talks to this instead of calling HaishinKit
     /// directly, so we can swap libraries or use a mock in tests.
+    /// Currently using a stub — T-007b will replace with HaishinKit.
     lazy var encoderBridge: EncoderBridge = {
-        // TODO: Replace with real implementation (e.g., HaishinKitEncoderBridge)
-        fatalError("EncoderBridge not yet implemented")
+        StubEncoderBridge()
     }()
 
     /// Decides how long to wait between automatic reconnect attempts
