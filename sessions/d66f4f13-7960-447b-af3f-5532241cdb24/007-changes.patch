@@ -1,0 +1,147 @@
+diff --git a/IOS_SPECIFICATION.md b/IOS_SPECIFICATION.md
+index 0d4727d..080773d 100644
+--- a/IOS_SPECIFICATION.md
++++ b/IOS_SPECIFICATION.md
+@@ -1,6 +1,6 @@
+ # StreamCaster — iOS RTMP Streaming Application Specification
+ 
+-**Version:** 2.0 (Hardened)  
++**Version:** 2.1 (Post-Adversarial Review)  
+ **Date:** March 15, 2026  
+ **Status:** Draft  
+ **Bundle ID:** `com.port80.app`  
+@@ -75,6 +75,7 @@ The following are explicitly out of scope for the current version:
+ | **Min Deployment** | iOS 15.0. Required for sample-buffer PiP, async/await, modern SwiftUI, and `ProcessInfo.ThermalState` notification API. |
+ | **Target SDK** | iOS 18 (latest). Required for App Store submission in 2026. |
+ | **Device class** | iPhones only. iPad and Mac Catalyst are not guaranteed to work and are not tested against. |
++| **Device tiers** | **Tier 1 (constrained):** A10/A11 chipsets (iPhone 7/8 class), ≤ 2 GB RAM. **Tier 2 (mid-range):** A12–A14 (iPhone XS through 12 class), 3–4 GB RAM. **Tier 3 (modern):** A15+ (iPhone 13+), 4+ GB RAM. Feature availability (60 fps, local recording) is gated by tier. See §4.2 VS-02, §8.3, §MC-05. |
+ | **Camera/encoder** | Hardware H.264 (Baseline/Main) + AAC-LC via VideoToolbox expected. H.265 deferred. All supported iPhones have hardware H.264. |
+ | **Network** | Hostile networks assumed. RTMPS is the preferred transport. RTMP is permitted only with explicit user consent (see §9). |
+ | **Background model** | iOS suspends apps aggressively. Camera capture survives backgrounding only via PiP mode. Audio-only streaming continues via `UIBackgroundModes: audio`. If PiP is dismissed while app is backgrounded, camera is interrupted by OS. |
+@@ -88,18 +89,18 @@ The following are explicitly out of scope for the current version:
+ 
+ | ID | Requirement | Priority |
+ |---|---|---|
+-| MC-01 | Stream **video only**, **audio only**, or **both** — user selects before or during stream. Mid-session video→audio downgrade is permitted; audio→video upgrade requires camera reacquire and encoder re-init. | Must |
++| MC-01 | Stream **video only**, **audio only**, or **both** — user selects before or during stream. Mid-session video→audio downgrade is permitted; audio→video upgrade requires disconnecting and reconnecting the RTMP session with the new track configuration (not a mid-session track addition), because not all RTMP servers accept a new video metadata/header packet mid-stream. If reconnection fails, remain in audio-only mode and surface the error. | Must |
+ | MC-02 | Default to **back camera**. User can switch to front camera before or during stream. | Must |
+ | MC-03 | Live camera preview displayed before and during streaming. Preview must restore after app comes back from background if PiP was dismissed. | Must |
+ | MC-04 | Orientation (portrait / landscape) selected by user before stream start; locked for the duration of the active session; unlocked only when idle. The lock must be applied before the first frame renders using `supportedInterfaceOrientations` on the root view controller. When a stream is active, the lock is enforced unconditionally to prevent orientation change during streaming. | Must |
+-| MC-05 | **Local recording** — optional toggle to save a local MP4 copy simultaneously. User selects destination: **Photos Library** (via `PHPhotoLibrary`) or **app's Documents directory** (accessible via Files app). Enabling the toggle must immediately prompt for the chosen destination if Photos Library permissions haven't been granted. Local recording must tee encoded sample buffers from the single hardware encoder into both the RTMP muxer and the `AVAssetWriter` MP4 muxer; no second encoder instance may be opened. If storage permission is denied or unavailable, recording must fail fast with a user prompt; streaming must not be blocked. | Must |
++| MC-05 | **Local recording** — optional toggle to save a local MP4 copy simultaneously. User selects destination: **Photos Library** (via `PHPhotoLibrary`) or **app's Documents directory** (accessible via Files app). Enabling the toggle must immediately prompt for the chosen destination if Photos Library permissions haven't been granted. Local recording must tee encoded sample buffers from the single hardware encoder into both the RTMP muxer and the `AVAssetWriter` MP4 muxer; no second encoder instance may be opened. If storage permission is denied or unavailable, recording must fail fast with a user prompt; streaming must not be blocked. **On Tier 1 devices (`physicalMemory < 3 GB`), display a warning that local recording may cause the app to be terminated by iOS due to memory pressure.** Register a `DispatchSource.makeMemoryPressureSource(.warning)` observer; on `.warning` or `.critical` memory pressure, stop local recording (but not streaming) and notify the user. See §3 device tiers. | Must |
+ 
+ ### 4.2 Video Settings
+ 
+ | ID | Requirement | Default | Priority |
+ |---|---|---|---|
+ | VS-01 | **Resolution** selectable from device-supported list, filtered by `AVCaptureDevice.formats` and `VTSessionCopySupportedPropertyDictionary` for encoder compatibility. | **720p (1280×720)** | Must |
+-| VS-02 | **Frame rate** selectable: 24, 25, 30, 60 fps — shown only if the device camera+encoder support it (checked via `AVFrameRateRange`). | **30 fps** | Must |
++| VS-02 | **Frame rate** selectable: 24, 25, 30, 60 fps — shown only if the device camera+encoder support it (checked via `AVFrameRateRange`). **60 fps must be hidden on Tier 1 devices (A10/A11)** regardless of hardware capability, because sustained 60 fps encoding causes thermal oscillation within minutes on these chipsets. See §3 device tiers. | **30 fps** | Must |
+ | VS-03 | **Video codec**: H.264 (Baseline/Main profile). H.265 deferred. | H.264 | Must |
+ | VS-04 | **Video bitrate** selectable or auto. Range: 500 kbps – 8 Mbps, capped to encoder capability. | **2.5 Mbps** (for 720p30) | Must |
+ | VS-05 | **Keyframe interval** configurable (1–5 seconds). | **2 seconds** | Should |
+@@ -142,11 +143,11 @@ The following are explicitly out of scope for the current version:
+ | SL-01 | **Start / Stop** stream via prominent button. | Must |
+ | SL-02 | **Auto-reconnect** on network drop — configurable retry count (default: unlimited) and interval using exponential backoff with jitter (3 s, 6 s, 12 s, …, cap 60 s). Reconnect attempts must be driven by `NWPathMonitor` path status updates (`path.status == .satisfied`) in addition to the backoff timer; timer-based retries continue while network is available. | Must |
+ | SL-03 | **Background streaming** — video continues via PiP mode when app is backgrounded. Audio-only streaming continues via `UIBackgroundModes: audio`. When PiP is dismissed by the user while the app is in the background, the camera is interrupted by iOS; the stream switches to audio-only (or stops if video-only mode). On return to foreground, camera re-acquires and video resumes with an IDR frame. See §7.1. | Must |
+-| SL-04 | **Lock Screen / Control Center controls** — play/pause accessible via `MPRemoteCommandCenter`. `MPNowPlayingInfoCenter` displays stream status (live duration, bitrate). A stop action must cancel any in-flight reconnect and leave the stream fully stopped. | Must |
++| SL-04 | **Lock Screen / Control Center controls** via `MPRemoteCommandCenter`. `MPNowPlayingInfoCenter` displays stream status (live duration, bitrate). **`pauseCommand` must map to mute-audio, not stop-stream**, to prevent accidental broadcast termination from AirPod removal, Bluetooth button press, Siri "pause" commands, or CarPlay events. **`stopCommand`** maps to stop-stream and must cancel any in-flight reconnect and leave the stream fully stopped. `togglePlayPauseCommand` maps to mute/unmute with debouncing (500 ms). | Must |
+ | SL-05 | Graceful shutdown on low battery (configurable threshold, default 5%). Auto-stop and finalize local recording at critical (≤ 2%). | Should |
+ | SL-06 | **Background camera interruption handling** — when iOS interrupts `AVCaptureSession` in the background (PiP dismissed or another app takes camera), cleanly stop the video track, keep the audio-only RTMP session alive (or stop gracefully if video-only mode). On return to foreground, re-acquire camera, re-init video encoder, and send an IDR frame to resume video. | Must |
+-| SL-07 | **Thermal throttling response** — register for `ProcessInfo.thermalStateDidChangeNotification`. On `.fair`: show HUD warning. On `.serious`: step down the ABR ladder (e.g., 720p→480p, 30→15 fps), performing a controlled encoder restart if resolution/fps change requires it. On `.critical`: stop stream and recording gracefully and show the user the reason. Enforce a minimum 60-second cooldown between thermal-triggered step changes to avoid rapid oscillation. Restore quality when thermals return to normal. | Must |
+-| SL-08 | **Audio session interruption handling** — on incoming call or audio session interruption (`.began`), mute the microphone and show a muted indicator. Resume sending audio only on explicit user action (unmute). Register for `AVAudioSession.interruptionNotification`. | Must |
++| SL-07 | **Thermal throttling response** — register for `ProcessInfo.thermalStateDidChangeNotification`. On `.fair`: show HUD warning. On `.serious`: step down the ABR ladder (e.g., 720p→480p, 30→15 fps), performing a controlled encoder restart if resolution/fps change requires it. On `.critical`: stop stream and recording gracefully and show the user the reason. Enforce a minimum 60-second cooldown between thermal-triggered step changes to avoid rapid oscillation. **Quality restoration uses progressive backoff:** first restoration attempt after 60 s, second after 120 s, third+ after 300 s. If a restored configuration triggers another thermal event within the backoff window, **do not restore to that configuration again for the remainder of the session** — this prevents oscillation loops (e.g., 60 fps → thermal serious → 15 fps → cool → 60 fps → thermal serious). | Must |
++| SL-08 | **Audio session interruption handling** — on incoming call or audio session interruption (`.began`), mute the microphone and show a muted indicator. Register for `AVAudioSession.interruptionNotification`. **Causal chain:** an audio interruption deactivates the audio session, which causes iOS to dismiss PiP (if active), which triggers `AVCaptureSession.wasInterruptedNotification` and camera loss. The engine must recognize this as a single compound event and enter a `suspended` sub-state — do not attempt RTMP reconnection during this window. On interruption `.ended` with `shouldResume`: (1) reactivate `AVAudioSession`, (2) re-start PiP if the app is still backgrounded, (3) re-acquire camera. Resume sending audio only on explicit user action (unmute). If the stream mode is **audio-only**, an audio interruption must stop the stream (there is nothing left to send). If the stream mode is **video+audio**, mute audio and continue video. See SL-06 for the camera recovery path. | Must |
+ 
+ ### 4.7 Overlay Architecture (Future)
+ 
+@@ -234,9 +235,9 @@ The following are explicitly out of scope for the current version:
+ 
+ | Component | Responsibility |
+ |---|---|
+-| `StreamViewModel` | References `StreamingEngine`. Reads authoritative streaming state modelled as a `StreamState` enum: `.idle`, `.connecting`, `.live(cameraActive: Bool, isMuted: Bool)`, `.reconnecting(attempt: Int, nextRetryMs: Int64)`, `.stopping`, `.stopped(reason: StopReason)` where `StopReason` is `.userRequest`, `.errorEncoder`, `.errorAuth`, `.errorCamera`, `.errorAudio`, `.thermalCritical`, `.batteryCritical`. Exposes preview surface, stream stats, and control actions. All start/stop/mute commands are idempotent. |
++| `StreamViewModel` | References `StreamingEngine`. Reads authoritative streaming state modelled as a `StreamState` enum: `.idle`, `.connecting`, `.live(cameraActive: Bool, isMuted: Bool)`, `.reconnecting(attempt: Int, nextRetryMs: Int64)`, `.stopping`, `.stopped(reason: StopReason)` where `StopReason` is `.userRequest`, `.errorEncoder`, `.errorAuth`, `.errorCamera`, `.errorAudio`, `.errorNetwork`, `.errorStorage`, `.thermalCritical`, `.batteryCritical`, `.pipDismissedVideoOnly`, `.osTerminated`, `.unknown`. Exposes preview surface, stream stats, and control actions. All start/stop/mute commands are idempotent. The `StreamingEngine` must never hold strong references to observers. All Combine subscriptions from `StreamViewModel` must be stored in `var cancellables: Set<AnyCancellable>` and cancelled in `deinit`. The engine exposes state only via `@Published` properties (pull model) and must never call back into ViewModels directly (push model). |
+ | `SettingsViewModel` | Reads/writes user preferences. Queries device for supported resolutions, frame rates, and codec profiles via `DeviceCapabilityQuery`. |
+-| `StreamingEngine` | Singleton (application-scoped). Owns the HaishinKit `RTMPConnection` + `RTMPStream` instances. Is the **single source of truth** for stream state. Manages lifecycle independently of the UI so streaming survives backgrounding (via PiP + background audio). Exposes state via `@Published` properties (Combine). |
++| `StreamingEngine` | Singleton (application-scoped). Owns the HaishinKit `RTMPConnection` + `RTMPStream` instances. Is the **single source of truth** for stream state. Manages lifecycle independently of the UI so streaming survives backgrounding (via PiP + background audio). Exposes state via `@Published` properties (Combine). **All `StreamState` mutations must occur on `@MainActor`** to prevent `UIKit` assertion failures from background-thread Combine emissions during background execution (observed on iOS 15–16). |
+ | `DeviceCapabilityQuery` | Queries `AVCaptureDevice.DiscoverySession` and `AVCaptureDevice.formats` for available cameras, resolutions, frame rates, and codec profiles. Does NOT own the camera or open a capture session. |
+ | `AudioSessionManager` | Configures `AVAudioSession`. Manages category, mode, interruption handling, and route changes. |
+ | `PiPManager` | Manages `AVPictureInPictureController` with `AVSampleBufferDisplayLayer`. Activates PiP on app backgrounding, deactivates on foregrounding. Monitors PiP lifecycle events. |
+@@ -244,7 +245,7 @@ The following are explicitly out of scope for the current version:
+ | `OverlayManager` | Protocol with `func processFrame(_ image: CIImage) -> CIImage`. Default no-op. Future overlays plug in here via HaishinKit's `VideoEffect`. |
+ | `SettingsRepository` | Persists non-sensitive settings via UserDefaults. |
+ | `EndpointProfileRepository` | CRUD for saved RTMP endpoint profiles. Credentials stored via Keychain Services with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`. |
+-| `ConnectionManager` | Handles RTMP connect/disconnect, auto-reconnect logic with exponential backoff + jitter, connection health monitoring via `NWPathMonitor`. Cancels retries on explicit user stop. |
++| `ConnectionManager` | Handles RTMP connect/disconnect, auto-reconnect logic with exponential backoff + jitter, connection health monitoring via `NWPathMonitor`. Cancels retries on explicit user stop. **Must use a Swift `actor` or serial `DispatchQueue` for all state transitions.** Stopping the stream must **first** cancel the `NWPathMonitor` and invalidate all reconnect timers, **then** send the RTMP disconnect — this prevents a race where a `NWPathMonitor` callback fires after stop and initiates a zombie reconnect. Every connection attempt must check the engine’s current `StreamState` atomically before proceeding. |
+ 
+ ### 6.3 Camera Strategy — HaishinKit as Sole Camera Owner
+ 
+@@ -276,10 +277,13 @@ Camera switching and preview attachment are delegated directly to `RTMPStream.at
+ iOS does not support indefinite camera access in the background the way Android's foreground service does. StreamCaster uses a two-pronged approach:
+ 
+ **PiP (Picture-in-Picture) for Video:**
+-- On `scenePhase == .background` or `UIApplication.didEnterBackgroundNotification`, activate `AVPictureInPictureController` using an `AVSampleBufferDisplayLayer` fed with live camera frames.
++- **`UIApplication.didEnterBackgroundNotification` is the authoritative signal for PiP activation.** `scenePhase` must not be used for engine-level lifecycle decisions (it is unreliable on iOS 15–16: may not fire, may fire multiple times, or may stall at `.inactive` during Siri/notification center interactions). Use `scenePhase` only for SwiftUI view updates. Pre-emptively begin PiP activation on `UIApplication.willResignActiveNotification` (the transition state before background) to win the race against OS suspension.
++- Wrap all background transition work (PiP activation, encoder reconfiguration, audio session changes) in `UIApplication.shared.beginBackgroundTask(expirationHandler:)`. The expiration handler must force-finalize any in-progress encoder restart or state transition and flush the RTMP connection. **Without `beginBackgroundTask`, iOS may suspend the process mid-transition (within 5–30 seconds, as low as <10 seconds on Tier 1 devices under memory pressure), leaving data structures in an inconsistent state.**
++- Verify PiP activation via `AVPictureInPictureControllerDelegate.pictureInPictureControllerDidStartPictureInPicture` within 500 ms. If the delegate callback is not received, immediately transition to audio-only mode and log a `PiP activation failure` metric. PiP may fail silently if: the user has disabled PiP in iOS Settings, the `AVAudioSession` is interrupted, the `AVSampleBufferDisplayLayer` is not actively enqueuing frames, or the OS suspends the process before the PiP window renders its first frame.
+ - PiP keeps the `AVCaptureSession` alive and the camera accessible.
+ - If the user dismisses PiP while backgrounded, iOS interrupts the capture session (see SL-06).
+-- On `scenePhase == .active` / foreground return, deactivate PiP and restore the full-screen preview.
++- **`MTHKView` rendering must be paused** (set `isPaused = true` or remove from the render tree) when PiP is active and the app is not in the foreground. Rendering both `MTHKView` and `AVSampleBufferDisplayLayer` simultaneously is GPU-wasteful and can push Tier 1/Tier 2 devices to `.serious` thermal state within minutes. Resume `MTHKView` rendering on foreground return **before** deactivating PiP, to avoid a black-frame flash.
++- On `UIApplication.willEnterForegroundNotification` / foreground return, deactivate PiP and restore the full-screen preview.
+ 
+ **Audio Background Mode:**
+ - Declare `UIBackgroundModes: audio` in `Info.plist`.
+@@ -287,7 +291,7 @@ iOS does not support indefinite camera access in the background the way Android'
+ - This enables audio-only streaming to survive backgrounding.
+ 
+ **Constraints:**
+-- PiP requires the app to have an active `AVAudioSession`. If the audio session is interrupted (e.g., incoming call), PiP may also be dismissed.
++- PiP requires the app to have an active `AVAudioSession`. If the audio session is interrupted (e.g., incoming call), PiP may also be dismissed. **This is a causal chain, not two independent events** — see SL-08 for the full audio-interruption → PiP-dismissed → camera-interrupted recovery sequence.
+ - The app must not assume the camera is always available in the background. All camera access must be gated on `AVCaptureSession.isRunning`.
+ - If the user has disabled PiP in iOS Settings, the app falls back to audio-only background streaming.
+ 
+@@ -302,13 +306,15 @@ iOS does not support indefinite camera access in the background the way Android'
+ 
+ - If the app is terminated by iOS (memory pressure, user swipe-kill, watchdog), the stream stops immediately.
+ - On next launch, the app starts in `idle` state. No automatic stream resumption occurs.
+-- If a local recording was in progress, `AVAssetWriter` finalization may not complete. The app must detect orphaned recording files on launch and offer the user the option to delete or attempt recovery.
++- **Dead-man’s-switch notification:** On stream start, schedule a local notification via `UNUserNotificationCenter` (e.g., "StreamCaster session may have ended unexpectedly") to fire ~5 minutes after the last heartbeat timestamp. Update the notification’s fire date on each successful stats update (heartbeat). Cancel the notification on clean stream stop. This ensures the user is informed even if the app is terminated by jetsam while backgrounded (the app cannot schedule a notification retroactively after termination).
++- If a local recording was in progress, `AVAssetWriter` finalization may not complete. **Orphaned file definition:** a `.mov` or `.mp4` file in the recording directory whose `AVAssetWriter` was not finalized (detectable by the absence of a complete moov atom, or by checking for a `.tmp`/`.inProgress` sentinel file written at recording start and deleted on finalization). On detection, show file size and last-modified date. Offer **"Delete"** (default) and **"Keep as-is"** (for users who want to attempt external recovery via `ffmpeg`). Do not offer in-app recovery — incomplete moov atoms are generally unrecoverable by standard iOS APIs, and the option creates a false expectation.
+ - State restoration for UI settings (selected camera, resolution, etc.) is handled via `@AppStorage` / `UserDefaults`. No stream state is persisted across app terminations.
+ 
+ ### 7.4 Lock Screen / Control Center Controls
+ 
+ - Stream status displayed via `MPNowPlayingInfoCenter.default().nowPlayingInfo` — shows stream title ("StreamCaster Live"), elapsed duration, and connection state.
+-- `MPRemoteCommandCenter` provides play/pause (maps to start/stop stream) and a custom mute/unmute command.
++- **`pauseCommand` maps to mute/unmute audio** (not stop-stream), preventing accidental broadcast termination from AirPod removal, Bluetooth button press, Siri commands, or CarPlay. **`stopCommand`** maps to stop-stream.
++- `togglePlayPauseCommand` maps to mute/unmute with 500 ms debouncing.
+ - A stop action must immediately cancel any pending reconnect attempts and transition to stopped state.
+ 
+ ---
+@@ -318,6 +324,7 @@ iOS does not support indefinite camera access in the background the way Android'
+ ### 8.1 Encoder Initialization
+ 
+ - Before starting a stream, validate the chosen resolution and frame rate against `AVCaptureDevice.Format` properties (`formatDescription`, `videoSupportedFrameRateRanges`). If the device cannot support the requested configuration, fail fast with an actionable error message and suggest a supported configuration.
++- **`AVCaptureDevice.formats` filtering alone is insufficient for encoder compatibility.** Camera sensor capability does not guarantee sustained encoder throughput (e.g., iPhone 8/A11 sensor supports 4K capture, but sustained 4K H.264 encoding via VideoToolbox causes immediate frame drops). Implement a pre-flight encoder validation: create a temporary `VTCompressionSession` with the desired resolution+fps+bitrate, encode ~10 test frames, and verify the actual output rate matches the configured rate. Cache results by device model identifier (`utsname.machine`) to avoid repeating on every stream start.
+ - Pre-flight: configure `RTMPStream` with the chosen parameters and verify VideoToolbox encoder creation succeeds before connecting to the RTMP endpoint. HaishinKit reports encoder errors via its delegate.
+ - During streaming, monitor the actual encoded output frame rate. If measured output fps falls below 80% of configured fps for more than 5 consecutive seconds, treat this as a backpressure event and trigger the ABR step-down path.
+ 
+@@ -330,6 +337,7 @@ iOS does not support indefinite camera access in the background the way Android'
+ - ABR first reduces bitrate only (via `RTMPStream.videoSettings.bitRate`). If insufficient, step down resolution/fps via controlled encoder restart.
+ - Prefer bitrate reduction before frame skipping.
+ - All quality-change requests from **both** the ABR system and the thermal throttling system (SL-07) must be serialized through a single `EncoderController` component using a Swift `actor` or `AsyncStream` with serial processing. This prevents concurrent encoder reconfiguration races.
++- **The `EncoderController` must not only serialize requests but also await confirmation of each change before dequeuing the next.** HaishinKit dispatches encoder operations on its own internal serial queue; assigning `RTMPStream.videoSettings` returns before the encoder has actually reconfigured. Use HaishinKit’s delegate callbacks or poll `RTMPStream` properties to verify the encoder has settled at the new configuration. If confirmation does not arrive within 5 seconds, treat it as an encoder error (see §11 Encoder error handling).
+ - The 60-second thermal cooldown (SL-07) applies only to **thermal-triggered** resolution/fps changes that require an encoder restart. ABR **bitrate-only** reductions and recoveries do not require an encoder restart and bypass the cooldown entirely. ABR resolution/fps changes that do require an encoder restart are subject to the cooldown timer.
+ 
+ ### 8.3 Encoder Restart for Quality Changes
+@@ -339,7 +347,8 @@ iOS does not support indefinite camera access in the background the way Android'
+   2. Update stream video settings (resolution, fps, bitrate).
+   3. Re-attach camera with new format.
+   4. Force an IDR frame.
+-- Target: stream gap ≤ 3 seconds during a quality change.
++- **Device-tier-aware restart timeouts:** Tier 3 (A15+): 2 s target. Tier 2 (A12–A14): 4 s target. Tier 1 (A10/A11): 6 s target. If the restart exceeds the timeout, **fall back to audio-only mode** rather than allowing the RTMP muxer to starve (most RTMP servers and CDN ingest points interpret a gap >2–3 seconds as a dead stream and close the connection).
++- **On Tier 1 devices, prefer bitrate-only ABR changes** (which do not require encoder restart) over resolution/fps step-downs. Resolution changes on Tier 1 should be a last resort.
+ 
+ ### 8.4 Frame Drop Policy
+ 
