@@ -1,0 +1,9 @@
+{
+  "sessionId": "cli-20260315-155606-d364b214",
+  "toolName": "sql",
+  "toolArgs": {
+    "description": "Create todos stage 0",
+    "query": "\nINSERT INTO todos (id, title, description, status) VALUES\n  ('T-001', 'Project Scaffolding & Xcode Setup', 'Create Xcode project StreamCaster. SPM deps HaishinKit + KSCrash. Info.plist, entitlements, AppDelegate, StreamCasterApp, DependencyContainer.', 'pending'),\n  ('T-002', 'Data Models & Protocol Contracts', 'Define all shared structs, enums, protocols for the entire app.', 'pending');\n"
+  },
+  "timestamp": 1773590305832
+}
