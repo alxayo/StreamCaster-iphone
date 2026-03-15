@@ -39,7 +39,10 @@ json_field() {
 # Environment variables always take priority over .env values.
 # ---------------------------------------------------------------------------
 load_config() {
-  local env_file="${HOOK_CWD:-.}/.env"
+  # Resolve project root via git (works for worktrees too), fall back to HOOK_CWD
+  local project_root
+  project_root="$(git -C "${HOOK_CWD:-.}" rev-parse --show-toplevel 2>/dev/null || echo "${HOOK_CWD:-.}")"
+  local env_file="${project_root}/.env"
   if [[ -f "$env_file" ]]; then
     while IFS= read -r line || [[ -n "$line" ]]; do
       # Skip comments and blank lines
