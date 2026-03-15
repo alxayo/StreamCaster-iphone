@@ -27,6 +27,10 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 
+	<!-- Executable name inside the app bundle -->
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+
 	<!-- Required: Xcode version plist format -->
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>

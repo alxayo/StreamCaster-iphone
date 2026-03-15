@@ -1,0 +1,788 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		01DF46505D1CE2BDDF54E8DF /* CrashReportConfigurator.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEDE9697C89E067A4FC20DFF /* CrashReportConfigurator.swift */; };
+		03402F3A6CCC950A4A38DE5D /* MetricsCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F636236F1E93C2F9F27B744 /* MetricsCollector.swift */; };
+		0C5F78C16EF60115D2174494 /* AudioSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB71EB9D6F09973C9AC3A150 /* AudioSessionManager.swift */; };
+		2B9A4E83318E99BFF1EB30A5 /* HaishinKitEncoderBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 410FC52E51C40ECF65632367 /* HaishinKitEncoderBridge.swift */; };
+		2C567A128FB9CB9A72E9AD02 /* NoOpOverlayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2825C7E29A4E2C8B5510689F /* NoOpOverlayManager.swift */; };
+		2D47AA12A4E5B00CD0F6B5F4 /* StreamCasterStartupSmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D677F20FDE88BD83E59BD942 /* StreamCasterStartupSmokeTests.swift */; };
+		2DA53C99C51BCE47B6E563E3 /* AbrPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9C28426B38D2F11CB53C1D1 /* AbrPolicy.swift */; };
+		307735AF94D3AA78F1582721 /* StreamingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5FDA78F5EA51D8B64ED2E4C /* StreamingEngine.swift */; };
+		356846D75404859DBAA37438 /* ThermalMonitorProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20A6A45BAB5711874C7868CB /* ThermalMonitorProtocol.swift */; };
+		3A44D355C7A0B577CBFC3EEA /* UserDefaultsSettingsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 915C54A4DCECF1A4A31F5BC5 /* UserDefaultsSettingsRepository.swift */; };
+		3B6CB0DB43ABFF6510A17BFE /* CredentialSanitizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6288CE7BC3798D7DC896C4B /* CredentialSanitizer.swift */; };
+		45ECDF6ABBC81AA37DD11DC3 /* AbrLadder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8994BF186EF9447855BBCE /* AbrLadder.swift */; };
+		4A0FB6EF523ACDDEA6FC36DD /* CameraPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 792FEB02F0487E63B4D60829 /* CameraPreviewView.swift */; };
+		4DEF2886E52AC43803CEB234 /* EndpointSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D75F536BDCA3B34ADBBB9AA8 /* EndpointSettingsView.swift */; };
+		5021284D1D6CD723638877AD /* SettingsRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B20D6B9E861804AEF3A278 /* SettingsRootView.swift */; };
+		553E32BEAA6C10B84F569E24 /* PermissionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CB954DC215A2DB8F42DE33 /* PermissionHandler.swift */; };
+		60A947861927D18C7290076F /* AVDeviceCapabilityQuery.swift in Sources */ = {isa = PBXBuildFile; fileRef = D37FF8FEAAF4C4A52FF612AC /* AVDeviceCapabilityQuery.swift */; };
+		67820C2CB94E03BB0F4B5871 /* GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6C9FAC4D966EF3BBA1D9940 /* GeneralSettingsView.swift */; };
+		6C97EB204530FB2E400308EF /* OrientationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F760DFAEBC73BA50E58E8EDD /* OrientationManager.swift */; };
+		6EDDA7D6C44706DBBCFEF1EE /* AudioSessionManagerProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 954226EDA6C1879FA2AEF32B /* AudioSessionManagerProtocol.swift */; };
+		736FC34734AC08A2980B93F5 /* StreamingEngineProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6744416E7D8A322FAE07873A /* StreamingEngineProtocol.swift */; };
+		7704EDB6D8E31174FF176E81 /* StreamState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B495DF2EA234982E444E8606 /* StreamState.swift */; };
+		77050E0136C61B449B36BBAF /* NowPlayingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B8B41BB76BEF70182FE621A /* NowPlayingController.swift */; };
+		795796B501057B6AF1F6D6B1 /* KeychainEndpointProfileRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15590F5CA9CC73BF31C4EA91 /* KeychainEndpointProfileRepository.swift */; };
+		7F569B6F70A0F709C9A95D0A /* StreamConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6181BD0F2CE93F54F0514F02 /* StreamConfig.swift */; };
+		825FCF3BC8DF0E8AAEBD8AB7 /* BatteryMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 698CB7C1E76A22989BFA77FC /* BatteryMonitor.swift */; };
+		8584C9F8D1EFE35F5F669464 /* StreamHudView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 949115F1EDDADA858B8CDD94 /* StreamHudView.swift */; };
+		85CDA5B6618BECEF2927FF55 /* VideoAudioSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A332E1C57D1BF5BB6B133534 /* VideoAudioSettingsView.swift */; };
+		8EC8F7B218B17513DF1BFC23 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AB576F49C39AFB58B38A5BD /* SettingsViewModel.swift */; };
+		980B3AC122A4D5A851C7E980 /* EndpointProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83D242E24211C4047321786E /* EndpointProfile.swift */; };
+		9C1A6CEB03D68406455B3E65 /* StreamViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 648E4AB445A0E869C4C23BA9 /* StreamViewModel.swift */; };
+		A8EB63DC5D117A67040C2656 /* StreamView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20E9CCAF9D44BB525DF757D8 /* StreamView.swift */; };
+		AA185F2DDED2B8BA2ACC2D38 /* ConnectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 094E8E14046E5C62E1A8F019 /* ConnectionManager.swift */; };
+		ADDB24F66FC60025D52A7B99 /* StubEncoderBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = F91B95F234077144BEE90C9F /* StubEncoderBridge.swift */; };
+		AF0163121BA6D274240559A4 /* TransportSecurityValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AD8DB46006467F4AE7D42D1 /* TransportSecurityValidator.swift */; };
+		B20B9190EBC9068EACE3118C /* OverlayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5542BDBCD270F3E8DD0F9DBF /* OverlayManager.swift */; };
+		B3FCA0CB169749B36940EC36 /* RedactingLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC59A2B431FD6BBED5CADD06 /* RedactingLogger.swift */; };
+		B4A2D4BC86291C8D93D6D73C /* CameraInterruptionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D652CFA013346FA1CD1F37E /* CameraInterruptionHandler.swift */; };
+		B4F21199A9B43049BC74193A /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48BDAD65D8F93950B2F18251 /* KeychainHelper.swift */; };
+		B9DDD934291B0A1B117E5E27 /* EndpointSettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0947A17594F06261DC86F08 /* EndpointSettingsViewModel.swift */; };
+		BA7D4765D9EE55B446292E1A /* ThermalMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F995F8AB1E0482CE1667E146 /* ThermalMonitor.swift */; };
+		BBC9753897594BBB41BEAFBF /* DependencyContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 566852B4BA6E1CF980AB77E8 /* DependencyContainer.swift */; };
+		BCAC1EE5E858767F05F1B308 /* StreamStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F2C0F8C7DF49F6A8D8A729A /* StreamStats.swift */; };
+		BCDFDD9EC35F1FE93106128A /* ConnectionTester.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6693C3B5174231C692EFF7A0 /* ConnectionTester.swift */; };
+		BE8CFB33F67D1C11472F7846 /* TerminationRecovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 410C4359C422AA9F8332D080 /* TerminationRecovery.swift */; };
+		C355F30A835D5B19D38EEA06 /* SettingsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = E25454D40EC3C39127B2CDA8 /* SettingsRepository.swift */; };
+		C99CE057845B3C23396DCCC4 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A580CEA9A86A6A8CF1EA215 /* AppDelegate.swift */; };
+		D0F2C486BB05D0907572E9A8 /* EncoderController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6485A87613ED34E3D50B9BF9 /* EncoderController.swift */; };
+		D374827D97649A5BCBFC922C /* DeviceCapabilityQuery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E89C221132B3B8558444345 /* DeviceCapabilityQuery.swift */; };
+		D6023C14F756C14858AD205F /* EndpointProfileRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A965B0520EEE7D0D43ABB1D /* EndpointProfileRepository.swift */; };
+		DAA926F188A3562669B205FF /* ProlongedSessionMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A951F2F02BC9DCE181AE0C45 /* ProlongedSessionMonitor.swift */; };
+		DD45E0E4B2B1D56B139BBE69 /* ReconnectPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5D107DED1C39D577454E68B /* ReconnectPolicy.swift */; };
+		DFA3E79B59406A0A45961D17 /* TransportSecurityAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B87BD696DA8FA4123C2263F /* TransportSecurityAlert.swift */; };
+		E40C505E4E43496EF781BF6C /* HaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = 38D79AA9145073A6DF059C29 /* HaishinKit */; };
+		E46A6A9216D449E2F9CE9D69 /* EncoderBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA83263409C45621184A1B55 /* EncoderBridge.swift */; };
+		F26327DFBE4A76699DD90CEC /* RTMPHaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0D6B43C65B33139570EFFB2E /* RTMPHaishinKit */; };
+		F4B1D99338597DD8824F081D /* Recording in Frameworks */ = {isa = PBXBuildFile; productRef = 00F1FB9C99095F4D0B4A1C9E /* Recording */; };
+		FDFE8A89F3B9A8B7FF53DD43 /* StreamCasterApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84E6C9CB4987EF535589EFA9 /* StreamCasterApp.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		0E26EE13DADA8A58B5FCB837 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4FA9356BC2E0A34F0F76E416 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DE358C3E28104D0880E97E6D;
+			remoteInfo = StreamCaster;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		094E8E14046E5C62E1A8F019 /* ConnectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManager.swift; sourceTree = "<group>"; };
+		0A476A3EA608FAECAB88A41F /* StreamCaster.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = StreamCaster.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		11CB954DC215A2DB8F42DE33 /* PermissionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionHandler.swift; sourceTree = "<group>"; };
+		15590F5CA9CC73BF31C4EA91 /* KeychainEndpointProfileRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainEndpointProfileRepository.swift; sourceTree = "<group>"; };
+		20A6A45BAB5711874C7868CB /* ThermalMonitorProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThermalMonitorProtocol.swift; sourceTree = "<group>"; };
+		20E9CCAF9D44BB525DF757D8 /* StreamView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamView.swift; sourceTree = "<group>"; };
+		2825C7E29A4E2C8B5510689F /* NoOpOverlayManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoOpOverlayManager.swift; sourceTree = "<group>"; };
+		2D652CFA013346FA1CD1F37E /* CameraInterruptionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraInterruptionHandler.swift; sourceTree = "<group>"; };
+		2E89C221132B3B8558444345 /* DeviceCapabilityQuery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceCapabilityQuery.swift; sourceTree = "<group>"; };
+		3A965B0520EEE7D0D43ABB1D /* EndpointProfileRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndpointProfileRepository.swift; sourceTree = "<group>"; };
+		3AD8DB46006467F4AE7D42D1 /* TransportSecurityValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportSecurityValidator.swift; sourceTree = "<group>"; };
+		410C4359C422AA9F8332D080 /* TerminationRecovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminationRecovery.swift; sourceTree = "<group>"; };
+		410FC52E51C40ECF65632367 /* HaishinKitEncoderBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HaishinKitEncoderBridge.swift; sourceTree = "<group>"; };
+		48BDAD65D8F93950B2F18251 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
+		4F2C0F8C7DF49F6A8D8A729A /* StreamStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamStats.swift; sourceTree = "<group>"; };
+		5542BDBCD270F3E8DD0F9DBF /* OverlayManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayManager.swift; sourceTree = "<group>"; };
+		566852B4BA6E1CF980AB77E8 /* DependencyContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DependencyContainer.swift; sourceTree = "<group>"; };
+		6181BD0F2CE93F54F0514F02 /* StreamConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamConfig.swift; sourceTree = "<group>"; };
+		6485A87613ED34E3D50B9BF9 /* EncoderController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncoderController.swift; sourceTree = "<group>"; };
+		648E4AB445A0E869C4C23BA9 /* StreamViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamViewModel.swift; sourceTree = "<group>"; };
+		6693C3B5174231C692EFF7A0 /* ConnectionTester.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionTester.swift; sourceTree = "<group>"; };
+		6744416E7D8A322FAE07873A /* StreamingEngineProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamingEngineProtocol.swift; sourceTree = "<group>"; };
+		698CB7C1E76A22989BFA77FC /* BatteryMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryMonitor.swift; sourceTree = "<group>"; };
+		6B8B41BB76BEF70182FE621A /* NowPlayingController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingController.swift; sourceTree = "<group>"; };
+		6F636236F1E93C2F9F27B744 /* MetricsCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricsCollector.swift; sourceTree = "<group>"; };
+		792FEB02F0487E63B4D60829 /* CameraPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreviewView.swift; sourceTree = "<group>"; };
+		7A580CEA9A86A6A8CF1EA215 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		83D242E24211C4047321786E /* EndpointProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndpointProfile.swift; sourceTree = "<group>"; };
+		84E6C9CB4987EF535589EFA9 /* StreamCasterApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamCasterApp.swift; sourceTree = "<group>"; };
+		8AB576F49C39AFB58B38A5BD /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
+		915C54A4DCECF1A4A31F5BC5 /* UserDefaultsSettingsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDefaultsSettingsRepository.swift; sourceTree = "<group>"; };
+		949115F1EDDADA858B8CDD94 /* StreamHudView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamHudView.swift; sourceTree = "<group>"; };
+		954226EDA6C1879FA2AEF32B /* AudioSessionManagerProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSessionManagerProtocol.swift; sourceTree = "<group>"; };
+		9B87BD696DA8FA4123C2263F /* TransportSecurityAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportSecurityAlert.swift; sourceTree = "<group>"; };
+		A0947A17594F06261DC86F08 /* EndpointSettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndpointSettingsViewModel.swift; sourceTree = "<group>"; };
+		A332E1C57D1BF5BB6B133534 /* VideoAudioSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoAudioSettingsView.swift; sourceTree = "<group>"; };
+		A951F2F02BC9DCE181AE0C45 /* ProlongedSessionMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProlongedSessionMonitor.swift; sourceTree = "<group>"; };
+		B495DF2EA234982E444E8606 /* StreamState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamState.swift; sourceTree = "<group>"; };
+		B6C9FAC4D966EF3BBA1D9940 /* GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsView.swift; sourceTree = "<group>"; };
+		C28929E27957DE0344AB330F /* StreamCasterTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = StreamCasterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CA83263409C45621184A1B55 /* EncoderBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncoderBridge.swift; sourceTree = "<group>"; };
+		CC59A2B431FD6BBED5CADD06 /* RedactingLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedactingLogger.swift; sourceTree = "<group>"; };
+		CC8994BF186EF9447855BBCE /* AbrLadder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AbrLadder.swift; sourceTree = "<group>"; };
+		D37FF8FEAAF4C4A52FF612AC /* AVDeviceCapabilityQuery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVDeviceCapabilityQuery.swift; sourceTree = "<group>"; };
+		D6288CE7BC3798D7DC896C4B /* CredentialSanitizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialSanitizer.swift; sourceTree = "<group>"; };
+		D677F20FDE88BD83E59BD942 /* StreamCasterStartupSmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamCasterStartupSmokeTests.swift; sourceTree = "<group>"; };
+		D75F536BDCA3B34ADBBB9AA8 /* EndpointSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndpointSettingsView.swift; sourceTree = "<group>"; };
+		D9C28426B38D2F11CB53C1D1 /* AbrPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AbrPolicy.swift; sourceTree = "<group>"; };
+		E25454D40EC3C39127B2CDA8 /* SettingsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsRepository.swift; sourceTree = "<group>"; };
+		E5D107DED1C39D577454E68B /* ReconnectPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReconnectPolicy.swift; sourceTree = "<group>"; };
+		E5FDA78F5EA51D8B64ED2E4C /* StreamingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamingEngine.swift; sourceTree = "<group>"; };
+		EEDE9697C89E067A4FC20DFF /* CrashReportConfigurator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReportConfigurator.swift; sourceTree = "<group>"; };
+		F2B20D6B9E861804AEF3A278 /* SettingsRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsRootView.swift; sourceTree = "<group>"; };
+		F760DFAEBC73BA50E58E8EDD /* OrientationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrientationManager.swift; sourceTree = "<group>"; };
+		F91B95F234077144BEE90C9F /* StubEncoderBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StubEncoderBridge.swift; sourceTree = "<group>"; };
+		F995F8AB1E0482CE1667E146 /* ThermalMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThermalMonitor.swift; sourceTree = "<group>"; };
+		FB71EB9D6F09973C9AC3A150 /* AudioSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSessionManager.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A1AD8530616D6213C1D57196 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E40C505E4E43496EF781BF6C /* HaishinKit in Frameworks */,
+				F26327DFBE4A76699DD90CEC /* RTMPHaishinKit in Frameworks */,
+				F4B1D99338597DD8824F081D /* Recording in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		04C316E3DFD7B27E701DA860 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				CC8994BF186EF9447855BBCE /* AbrLadder.swift */,
+				D9C28426B38D2F11CB53C1D1 /* AbrPolicy.swift */,
+				698CB7C1E76A22989BFA77FC /* BatteryMonitor.swift */,
+				2D652CFA013346FA1CD1F37E /* CameraInterruptionHandler.swift */,
+				094E8E14046E5C62E1A8F019 /* ConnectionManager.swift */,
+				6693C3B5174231C692EFF7A0 /* ConnectionTester.swift */,
+				CA83263409C45621184A1B55 /* EncoderBridge.swift */,
+				6485A87613ED34E3D50B9BF9 /* EncoderController.swift */,
+				410FC52E51C40ECF65632367 /* HaishinKitEncoderBridge.swift */,
+				6B8B41BB76BEF70182FE621A /* NowPlayingController.swift */,
+				A951F2F02BC9DCE181AE0C45 /* ProlongedSessionMonitor.swift */,
+				E5D107DED1C39D577454E68B /* ReconnectPolicy.swift */,
+				E5FDA78F5EA51D8B64ED2E4C /* StreamingEngine.swift */,
+				6744416E7D8A322FAE07873A /* StreamingEngineProtocol.swift */,
+				F91B95F234077144BEE90C9F /* StubEncoderBridge.swift */,
+				410C4359C422AA9F8332D080 /* TerminationRecovery.swift */,
+				3AD8DB46006467F4AE7D42D1 /* TransportSecurityValidator.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		190A410D42400BB8D08BF719 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				F60E9BC9E8C91E33E040C5D9 /* Components */,
+				FFE362037B2D55E0100A361E /* Settings */,
+				A9BFA05119C025A6A8194428 /* Stream */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		30A36E660041B188D403405F /* Thermal */ = {
+			isa = PBXGroup;
+			children = (
+				F995F8AB1E0482CE1667E146 /* ThermalMonitor.swift */,
+				20A6A45BAB5711874C7868CB /* ThermalMonitorProtocol.swift */,
+			);
+			path = Thermal;
+			sourceTree = "<group>";
+		};
+		3704EA28EE90CF29107E169A = {
+			isa = PBXGroup;
+			children = (
+				B41174777C110D309DE18AF4 /* StreamCaster */,
+				D56387B0D0898599EB16B0F1 /* StreamCasterTests */,
+				E0D9F34A3CC7A36E52C6D4E0 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		538A2E55FD30EF6FFF250AA0 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				A0947A17594F06261DC86F08 /* EndpointSettingsViewModel.swift */,
+				8AB576F49C39AFB58B38A5BD /* SettingsViewModel.swift */,
+				648E4AB445A0E869C4C23BA9 /* StreamViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		776E68A33A039B822D75C3D8 /* Crash */ = {
+			isa = PBXGroup;
+			children = (
+				EEDE9697C89E067A4FC20DFF /* CrashReportConfigurator.swift */,
+				D6288CE7BC3798D7DC896C4B /* CredentialSanitizer.swift */,
+			);
+			path = Crash;
+			sourceTree = "<group>";
+		};
+		8049CDC35724E0E81ABB94B9 /* Data */ = {
+			isa = PBXGroup;
+			children = (
+				3A965B0520EEE7D0D43ABB1D /* EndpointProfileRepository.swift */,
+				15590F5CA9CC73BF31C4EA91 /* KeychainEndpointProfileRepository.swift */,
+				48BDAD65D8F93950B2F18251 /* KeychainHelper.swift */,
+				6F636236F1E93C2F9F27B744 /* MetricsCollector.swift */,
+				E25454D40EC3C39127B2CDA8 /* SettingsRepository.swift */,
+				915C54A4DCECF1A4A31F5BC5 /* UserDefaultsSettingsRepository.swift */,
+				FE125197706945625CC57A45 /* Models */,
+			);
+			path = Data;
+			sourceTree = "<group>";
+		};
+		A82D084E266F7388630C5CD8 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				7A580CEA9A86A6A8CF1EA215 /* AppDelegate.swift */,
+				566852B4BA6E1CF980AB77E8 /* DependencyContainer.swift */,
+				84E6C9CB4987EF535589EFA9 /* StreamCasterApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		A9BFA05119C025A6A8194428 /* Stream */ = {
+			isa = PBXGroup;
+			children = (
+				949115F1EDDADA858B8CDD94 /* StreamHudView.swift */,
+				20E9CCAF9D44BB525DF757D8 /* StreamView.swift */,
+			);
+			path = Stream;
+			sourceTree = "<group>";
+		};
+		B41174777C110D309DE18AF4 /* StreamCaster */ = {
+			isa = PBXGroup;
+			children = (
+				A82D084E266F7388630C5CD8 /* App */,
+				DC9105DA2875C3EB16124EEF /* Audio */,
+				BBBC9F03294E8A1E6DE4EC82 /* Camera */,
+				776E68A33A039B822D75C3D8 /* Crash */,
+				8049CDC35724E0E81ABB94B9 /* Data */,
+				E0938E45B8AB8EFEED1C555D /* Overlay */,
+				04C316E3DFD7B27E701DA860 /* Services */,
+				30A36E660041B188D403405F /* Thermal */,
+				E96B88774D12EBB141FF4013 /* Utilities */,
+				538A2E55FD30EF6FFF250AA0 /* ViewModels */,
+				190A410D42400BB8D08BF719 /* Views */,
+			);
+			path = StreamCaster;
+			sourceTree = "<group>";
+		};
+		BBBC9F03294E8A1E6DE4EC82 /* Camera */ = {
+			isa = PBXGroup;
+			children = (
+				D37FF8FEAAF4C4A52FF612AC /* AVDeviceCapabilityQuery.swift */,
+				2E89C221132B3B8558444345 /* DeviceCapabilityQuery.swift */,
+			);
+			path = Camera;
+			sourceTree = "<group>";
+		};
+		D56387B0D0898599EB16B0F1 /* StreamCasterTests */ = {
+			isa = PBXGroup;
+			children = (
+				D677F20FDE88BD83E59BD942 /* StreamCasterStartupSmokeTests.swift */,
+			);
+			path = StreamCasterTests;
+			sourceTree = "<group>";
+		};
+		DC9105DA2875C3EB16124EEF /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				FB71EB9D6F09973C9AC3A150 /* AudioSessionManager.swift */,
+				954226EDA6C1879FA2AEF32B /* AudioSessionManagerProtocol.swift */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
+		E0938E45B8AB8EFEED1C555D /* Overlay */ = {
+			isa = PBXGroup;
+			children = (
+				2825C7E29A4E2C8B5510689F /* NoOpOverlayManager.swift */,
+				5542BDBCD270F3E8DD0F9DBF /* OverlayManager.swift */,
+			);
+			path = Overlay;
+			sourceTree = "<group>";
+		};
+		E0D9F34A3CC7A36E52C6D4E0 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				0A476A3EA608FAECAB88A41F /* StreamCaster.app */,
+				C28929E27957DE0344AB330F /* StreamCasterTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E96B88774D12EBB141FF4013 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				F760DFAEBC73BA50E58E8EDD /* OrientationManager.swift */,
+				CC59A2B431FD6BBED5CADD06 /* RedactingLogger.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		F60E9BC9E8C91E33E040C5D9 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				792FEB02F0487E63B4D60829 /* CameraPreviewView.swift */,
+				11CB954DC215A2DB8F42DE33 /* PermissionHandler.swift */,
+				9B87BD696DA8FA4123C2263F /* TransportSecurityAlert.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		FE125197706945625CC57A45 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				83D242E24211C4047321786E /* EndpointProfile.swift */,
+				6181BD0F2CE93F54F0514F02 /* StreamConfig.swift */,
+				B495DF2EA234982E444E8606 /* StreamState.swift */,
+				4F2C0F8C7DF49F6A8D8A729A /* StreamStats.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		FFE362037B2D55E0100A361E /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				D75F536BDCA3B34ADBBB9AA8 /* EndpointSettingsView.swift */,
+				B6C9FAC4D966EF3BBA1D9940 /* GeneralSettingsView.swift */,
+				F2B20D6B9E861804AEF3A278 /* SettingsRootView.swift */,
+				A332E1C57D1BF5BB6B133534 /* VideoAudioSettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1EED6A1549FF2D7E3CF51D8F /* StreamCasterTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0272CF1B55A8F42CFF07B373 /* Build configuration list for PBXNativeTarget "StreamCasterTests" */;
+			buildPhases = (
+				477AA3D1F3703EACBCD833AC /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DDCC1C266FBFBA5711FDE29E /* PBXTargetDependency */,
+			);
+			name = StreamCasterTests;
+			packageProductDependencies = (
+			);
+			productName = StreamCasterTests;
+			productReference = C28929E27957DE0344AB330F /* StreamCasterTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		DE358C3E28104D0880E97E6D /* StreamCaster */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D91D4B3856B2E1C5D897CC9E /* Build configuration list for PBXNativeTarget "StreamCaster" */;
+			buildPhases = (
+				0837869DB66B98FC026F0995 /* Sources */,
+				A1AD8530616D6213C1D57196 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = StreamCaster;
+			packageProductDependencies = (
+				38D79AA9145073A6DF059C29 /* HaishinKit */,
+				0D6B43C65B33139570EFFB2E /* RTMPHaishinKit */,
+				00F1FB9C99095F4D0B4A1C9E /* Recording */,
+			);
+			productName = StreamCaster;
+			productReference = 0A476A3EA608FAECAB88A41F /* StreamCaster.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4FA9356BC2E0A34F0F76E416 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 12D3DF4B3EA937DC8EC923AB /* Build configuration list for PBXProject "StreamCaster" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 3704EA28EE90CF29107E169A;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				F3929B96CE583A930E97DAF4 /* XCRemoteSwiftPackageReference "HaishinKit.swift" */,
+				FBDD0AB833CB48AB5FC397C1 /* XCRemoteSwiftPackageReference "KSCrash" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = E0D9F34A3CC7A36E52C6D4E0 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				DE358C3E28104D0880E97E6D /* StreamCaster */,
+				1EED6A1549FF2D7E3CF51D8F /* StreamCasterTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		0837869DB66B98FC026F0995 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				60A947861927D18C7290076F /* AVDeviceCapabilityQuery.swift in Sources */,
+				45ECDF6ABBC81AA37DD11DC3 /* AbrLadder.swift in Sources */,
+				2DA53C99C51BCE47B6E563E3 /* AbrPolicy.swift in Sources */,
+				C99CE057845B3C23396DCCC4 /* AppDelegate.swift in Sources */,
+				0C5F78C16EF60115D2174494 /* AudioSessionManager.swift in Sources */,
+				6EDDA7D6C44706DBBCFEF1EE /* AudioSessionManagerProtocol.swift in Sources */,
+				825FCF3BC8DF0E8AAEBD8AB7 /* BatteryMonitor.swift in Sources */,
+				B4A2D4BC86291C8D93D6D73C /* CameraInterruptionHandler.swift in Sources */,
+				4A0FB6EF523ACDDEA6FC36DD /* CameraPreviewView.swift in Sources */,
+				AA185F2DDED2B8BA2ACC2D38 /* ConnectionManager.swift in Sources */,
+				BCDFDD9EC35F1FE93106128A /* ConnectionTester.swift in Sources */,
+				01DF46505D1CE2BDDF54E8DF /* CrashReportConfigurator.swift in Sources */,
+				3B6CB0DB43ABFF6510A17BFE /* CredentialSanitizer.swift in Sources */,
+				BBC9753897594BBB41BEAFBF /* DependencyContainer.swift in Sources */,
+				D374827D97649A5BCBFC922C /* DeviceCapabilityQuery.swift in Sources */,
+				E46A6A9216D449E2F9CE9D69 /* EncoderBridge.swift in Sources */,
+				D0F2C486BB05D0907572E9A8 /* EncoderController.swift in Sources */,
+				980B3AC122A4D5A851C7E980 /* EndpointProfile.swift in Sources */,
+				D6023C14F756C14858AD205F /* EndpointProfileRepository.swift in Sources */,
+				4DEF2886E52AC43803CEB234 /* EndpointSettingsView.swift in Sources */,
+				B9DDD934291B0A1B117E5E27 /* EndpointSettingsViewModel.swift in Sources */,
+				67820C2CB94E03BB0F4B5871 /* GeneralSettingsView.swift in Sources */,
+				2B9A4E83318E99BFF1EB30A5 /* HaishinKitEncoderBridge.swift in Sources */,
+				795796B501057B6AF1F6D6B1 /* KeychainEndpointProfileRepository.swift in Sources */,
+				B4F21199A9B43049BC74193A /* KeychainHelper.swift in Sources */,
+				03402F3A6CCC950A4A38DE5D /* MetricsCollector.swift in Sources */,
+				2C567A128FB9CB9A72E9AD02 /* NoOpOverlayManager.swift in Sources */,
+				77050E0136C61B449B36BBAF /* NowPlayingController.swift in Sources */,
+				6C97EB204530FB2E400308EF /* OrientationManager.swift in Sources */,
+				B20B9190EBC9068EACE3118C /* OverlayManager.swift in Sources */,
+				553E32BEAA6C10B84F569E24 /* PermissionHandler.swift in Sources */,
+				DAA926F188A3562669B205FF /* ProlongedSessionMonitor.swift in Sources */,
+				DD45E0E4B2B1D56B139BBE69 /* ReconnectPolicy.swift in Sources */,
+				B3FCA0CB169749B36940EC36 /* RedactingLogger.swift in Sources */,
+				C355F30A835D5B19D38EEA06 /* SettingsRepository.swift in Sources */,
+				5021284D1D6CD723638877AD /* SettingsRootView.swift in Sources */,
+				8EC8F7B218B17513DF1BFC23 /* SettingsViewModel.swift in Sources */,
+				FDFE8A89F3B9A8B7FF53DD43 /* StreamCasterApp.swift in Sources */,
+				7F569B6F70A0F709C9A95D0A /* StreamConfig.swift in Sources */,
+				8584C9F8D1EFE35F5F669464 /* StreamHudView.swift in Sources */,
+				7704EDB6D8E31174FF176E81 /* StreamState.swift in Sources */,
+				BCAC1EE5E858767F05F1B308 /* StreamStats.swift in Sources */,
+				A8EB63DC5D117A67040C2656 /* StreamView.swift in Sources */,
+				9C1A6CEB03D68406455B3E65 /* StreamViewModel.swift in Sources */,
+				307735AF94D3AA78F1582721 /* StreamingEngine.swift in Sources */,
+				736FC34734AC08A2980B93F5 /* StreamingEngineProtocol.swift in Sources */,
+				ADDB24F66FC60025D52A7B99 /* StubEncoderBridge.swift in Sources */,
+				BE8CFB33F67D1C11472F7846 /* TerminationRecovery.swift in Sources */,
+				BA7D4765D9EE55B446292E1A /* ThermalMonitor.swift in Sources */,
+				356846D75404859DBAA37438 /* ThermalMonitorProtocol.swift in Sources */,
+				DFA3E79B59406A0A45961D17 /* TransportSecurityAlert.swift in Sources */,
+				AF0163121BA6D274240559A4 /* TransportSecurityValidator.swift in Sources */,
+				3A44D355C7A0B577CBFC3EEA /* UserDefaultsSettingsRepository.swift in Sources */,
+				85CDA5B6618BECEF2927FF55 /* VideoAudioSettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		477AA3D1F3703EACBCD833AC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2D47AA12A4E5B00CD0F6B5F4 /* StreamCasterStartupSmokeTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		DDCC1C266FBFBA5711FDE29E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DE358C3E28104D0880E97E6D /* StreamCaster */;
+			targetProxy = 0E26EE13DADA8A58B5FCB837 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		3388B7BB5911DADA5531878A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.port80.app.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/StreamCaster.app/StreamCaster";
+			};
+			name = Debug;
+		};
+		408901D079FD7762A13A5ADE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		44F1A6D348B55C2F11984F57 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = StreamCaster/StreamCaster.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = StreamCaster/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.port80.app;
+				PRODUCT_NAME = StreamCaster;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		70BC8DFBB72A0DE8C985E879 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		B07C15AEA6395630A17B9D81 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = StreamCaster/StreamCaster.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = StreamCaster/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.port80.app;
+				PRODUCT_NAME = StreamCaster;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F3B480C27D6510F2E4459E91 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.port80.app.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/StreamCaster.app/StreamCaster";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0272CF1B55A8F42CFF07B373 /* Build configuration list for PBXNativeTarget "StreamCasterTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3388B7BB5911DADA5531878A /* Debug */,
+				F3B480C27D6510F2E4459E91 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		12D3DF4B3EA937DC8EC923AB /* Build configuration list for PBXProject "StreamCaster" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				70BC8DFBB72A0DE8C985E879 /* Debug */,
+				408901D079FD7762A13A5ADE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D91D4B3856B2E1C5D897CC9E /* Build configuration list for PBXNativeTarget "StreamCaster" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B07C15AEA6395630A17B9D81 /* Debug */,
+				44F1A6D348B55C2F11984F57 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		F3929B96CE583A930E97DAF4 /* XCRemoteSwiftPackageReference "HaishinKit.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/shogo4405/HaishinKit.swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.2.4;
+			};
+		};
+		FBDD0AB833CB48AB5FC397C1 /* XCRemoteSwiftPackageReference "KSCrash" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kstenerud/KSCrash.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		00F1FB9C99095F4D0B4A1C9E /* Recording */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FBDD0AB833CB48AB5FC397C1 /* XCRemoteSwiftPackageReference "KSCrash" */;
+			productName = Recording;
+		};
+		0D6B43C65B33139570EFFB2E /* RTMPHaishinKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F3929B96CE583A930E97DAF4 /* XCRemoteSwiftPackageReference "HaishinKit.swift" */;
+			productName = RTMPHaishinKit;
+		};
+		38D79AA9145073A6DF059C29 /* HaishinKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F3929B96CE583A930E97DAF4 /* XCRemoteSwiftPackageReference "HaishinKit.swift" */;
+			productName = HaishinKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 4FA9356BC2E0A34F0F76E416 /* Project object */;
+}

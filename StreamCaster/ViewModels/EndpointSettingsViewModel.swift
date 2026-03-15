@@ -267,12 +267,10 @@ class EndpointSettingsViewModel: ObservableObject {
     // ──────────────────────────────────────────────────────────
 
     /// Show a security warning when the URL is plain rtmp://
-    /// (not encrypted) AND the user has entered credentials.
-    /// Credentials sent over unencrypted RTMP can be intercepted.
+    /// (not encrypted). Plaintext RTMP can be intercepted.
     private func checkSecurityWarning() {
-        let hasCredentials = !username.isEmpty || !password.isEmpty
         let isPlainRtmp = rtmpUrl.lowercased().hasPrefix("rtmp://")
 
-        showSecurityWarning = hasCredentials && isPlainRtmp
+        showSecurityWarning = isPlainRtmp
     }
 }

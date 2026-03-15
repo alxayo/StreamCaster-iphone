@@ -316,6 +316,8 @@ final class AudioSessionManager: AudioSessionManagerProtocol {
             reasonString = "NoSuitableRouteForCategory"
         case .routeConfigurationChange:
             reasonString = "RouteConfigurationChange"
+        case .unknown:
+            reasonString = "Unknown"
         @unknown default:
             reasonString = "Unknown(\(reasonValue))"
         }

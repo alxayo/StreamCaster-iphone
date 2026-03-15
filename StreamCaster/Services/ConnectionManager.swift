@@ -330,14 +330,8 @@ final class ConnectionManager {
         let result = TransportSecurityValidator.validate(profile: profile)
 
         switch result {
-        case .blockedPlaintextWithCredentials:
-            // Hard-block: credentials over plaintext is never allowed.
-            // Emit an auth error so the engine knows the connection was rejected.
-            cancelReconnect()
-            onConnectionEvent?(.disconnected(reason: .errorAuth))
-
         case .warningPlaintext:
-            // Plain RTMP without credentials — the caller decides whether
+            // Plain RTMP — the caller decides whether
             // to proceed or show a warning to the user.
             break
 

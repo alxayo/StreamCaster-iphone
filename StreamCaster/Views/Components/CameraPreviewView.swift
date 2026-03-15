@@ -91,6 +91,10 @@ struct CameraPreviewView: UIViewRepresentable {
             videoGravity: videoGravity
         )
 
+        Task { @MainActor in
+            StreamingEngine.shared.attachPreview(previewView)
+        }
+
         return container
     }
 
@@ -116,6 +120,10 @@ struct CameraPreviewView: UIViewRepresentable {
 
         // Clear the coordinator's reference
         coordinator.previewView = nil
+
+        Task { @MainActor in
+            StreamingEngine.shared.detachPreview()
+        }
     }
 
     /// Creates the coordinator that lives as long as the view exists.

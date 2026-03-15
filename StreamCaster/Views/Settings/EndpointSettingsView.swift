@@ -75,7 +75,7 @@ struct EndpointSettingsView: View {
             if viewModel.showSecurityWarning {
                 Section {
                     Label {
-                        Text("Credentials will be sent in plaintext. Use rtmps:// for security.")
+                        Text("This stream will use plaintext RTMP. Use rtmps:// when available.")
                     } icon: {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundColor(.yellow)
@@ -248,7 +248,7 @@ struct EndpointSettingsView: View {
 // MARK: - Preview
 
 #Preview {
-    NavigationStack {
+    NavigationView {
         EndpointSettingsView()
     }
 }

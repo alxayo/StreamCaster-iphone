@@ -65,6 +65,9 @@ final class StreamViewModel: ObservableObject {
     /// `true` when the device is overheating (serious or critical)
     @Published private(set) var showThermalWarning: Bool = false
 
+    /// Latest user-visible stream error shown in the UI.
+    @Published private(set) var errorMessage: String?
+
     // MARK: - Dependencies
 
     /// Reference to the streaming engine — the single source of truth
@@ -78,8 +81,8 @@ final class StreamViewModel: ObservableObject {
 
     /// Create a StreamViewModel that observes the given engine.
     /// Defaults to the shared singleton.
-    init(engine: StreamingEngine = .shared) {
-        self.engine = engine
+    init(engine: StreamingEngine? = nil) {
+        self.engine = engine ?? .shared
         setupBindings()
     }
 
@@ -120,6 +123,12 @@ final class StreamViewModel: ObservableObject {
                 self.canStopStream = snapshot.transport == .live
                     || snapshot.transport == .connecting
                     || self.isReconnecting
+
+                if case .stopped(let reason) = snapshot.transport {
+                    self.errorMessage = self.message(for: reason)
+                } else if snapshot.transport == .live || snapshot.transport == .connecting {
+                    self.errorMessage = nil
+                }
             }
             .store(in: &cancellables)
 
@@ -141,6 +150,17 @@ final class StreamViewModel: ObservableObject {
                 // Show thermal warning if device is overheating
                 self.showThermalWarning =
                     stats.thermalLevel == .serious || stats.thermalLevel == .critical
+            }
+            .store(in: &cancellables)
+
+        // Prefer explicit engine-provided errors when available.
+        engine.$lastErrorMessage
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] message in
+                guard let self else { return }
+                if let message, !message.isEmpty {
+                    self.errorMessage = message
+                }
             }
             .store(in: &cancellables)
     }
@@ -171,6 +191,11 @@ final class StreamViewModel: ObservableObject {
     /// Switch between front and back camera.
     func switchCamera() {
         engine.switchCamera()
+    }
+
+    /// Clear the currently visible error from the UI.
+    func dismissError() {
+        errorMessage = nil
     }
 
     // MARK: - Formatting Helpers
@@ -246,6 +271,35 @@ final class StreamViewModel: ObservableObject {
             return "yellow"
         case .stopped:
             return "red"
+        }
+    }
+
+    private func message(for reason: StopReason) -> String? {
+        switch reason {
+        case .userRequest:
+            return nil
+        case .errorAuth:
+            return "Failed to start stream. Check endpoint configuration and credentials."
+        case .errorNetwork:
+            return "Could not connect to the streaming endpoint."
+        case .errorEncoder:
+            return "Video encoder failed to start."
+        case .errorCamera:
+            return "Camera is unavailable."
+        case .errorAudio:
+            return "Microphone is unavailable."
+        case .errorStorage:
+            return "Recording stopped due to low storage."
+        case .thermalCritical:
+            return "Streaming stopped because the device overheated."
+        case .batteryCritical:
+            return "Streaming stopped due to critical battery level."
+        case .pipDismissedVideoOnly:
+            return "Streaming stopped when Picture in Picture was dismissed."
+        case .osTerminated:
+            return "Streaming stopped because the app was terminated by iOS."
+        case .unknown:
+            return "Streaming stopped due to an unknown error."
         }
     }
 }

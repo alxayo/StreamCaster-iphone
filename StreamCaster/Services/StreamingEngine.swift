@@ -47,6 +47,9 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     /// Updated roughly once per second while streaming.
     @Published private(set) var streamStats: StreamStats = StreamStats()
 
+    /// A user-facing error message for the latest start/stream failure.
+    @Published private(set) var lastErrorMessage: String?
+
     // MARK: - Combine Publishers
 
     /// Emits a new snapshot every time any part of the session state changes.
@@ -122,10 +125,26 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     ///   We NEVER accept raw credentials — only a profile ID.
     /// - Throws: If the profile doesn't exist or the connection fails.
     func startStream(profileId: String) async throws {
-        // Step 1: Look up the profile by ID.
+        // Clear any previous error before attempting a fresh start.
+        lastErrorMessage = nil
+
+        // Step 1: Resolve the target profile.
+        // We support both explicit IDs and the legacy "default" sentinel.
+        let requestedProfile = profileRepository.getById(profileId)
+        let profile: EndpointProfile?
+        if let requestedProfile {
+            profile = requestedProfile
+        } else if profileId == "default" {
+            profile = profileRepository.getDefault() ?? profileRepository.getAll().first
+        } else {
+            profile = nil
+        }
+
         // We never accept raw URLs or stream keys as parameters — credentials
         // stay safely inside the repository (backed by the Keychain).
-        guard let profile = profileRepository.getById(profileId) else {
+        guard let profile else {
+            lastErrorMessage = "No endpoint profile is configured. Open Settings > Endpoint and save one profile."
+
             // Profile not found — report an auth error and stop.
             let snapshot = await coordinator.stopSession(reason: .errorAuth)
             applySnapshot(snapshot)
@@ -150,6 +169,8 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
                 bitrateKbps: config.videoBitrateKbps
             )
         } catch {
+            lastErrorMessage = "Failed to configure encoder settings."
+
             // If encoder setup fails, stop with an encoder error.
             let snapshot = await coordinator.stopSession(reason: .errorEncoder)
             applySnapshot(snapshot)
@@ -169,8 +190,16 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         encoderBridge.connect(url: profile.rtmpUrl, streamKey: profile.streamKey)
 
         // Step 7: Verify the connection succeeded, then go live.
-        // In the stub, connect() is synchronous and always succeeds.
-        // With a real encoder, we'd listen for connection events instead.
+        let connected = await waitForEncoderConnection(timeoutMs: 8_000)
+        guard connected else {
+            lastErrorMessage = "Unable to connect to the endpoint. Check URL/stream key and network, then try again."
+
+            let snapshot = await coordinator.stopSession(reason: .errorNetwork)
+            applySnapshot(snapshot)
+            scheduleReturnToIdle()
+            return
+        }
+
         let currentToken = await coordinator.currentSessionToken
         let liveSnapshot = await coordinator.goLive(sessionToken: currentToken)
         applySnapshot(liveSnapshot)
@@ -308,17 +337,34 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     // MARK: - Preview
 
     /// Attach a UIView to display the live camera preview.
-    /// The stub encoder doesn't render anything, but this satisfies the protocol.
     func attachPreview(_ view: UIView) {
-        // The real HaishinKit bridge will add a preview layer here.
-        // In the stub, this is a no-op.
-        print("[StreamingEngine] attachPreview() — stub, no-op")
+        let bridge = encoderBridge as? HaishinKitEncoderBridge
+        bridge?.attachPreview(view)
+
+        // Show a live preview even before streaming starts.
+        if shouldManageIdlePreviewCamera {
+            bridge?.attachCamera(position: settingsRepository.getDefaultCameraPosition())
+        }
     }
 
     /// Remove the camera preview from its parent view.
     func detachPreview() {
-        // In the stub, this is a no-op.
-        print("[StreamingEngine] detachPreview() — stub, no-op")
+        let bridge = encoderBridge as? HaishinKitEncoderBridge
+        bridge?.detachPreview()
+
+        // If we're not actively streaming, release the camera when preview closes.
+        if shouldManageIdlePreviewCamera {
+            bridge?.detachCamera()
+        }
+    }
+
+    private var shouldManageIdlePreviewCamera: Bool {
+        switch sessionSnapshot.transport {
+        case .idle, .stopped:
+            return true
+        default:
+            return false
+        }
     }
 
     // MARK: - Private Helpers
@@ -349,6 +395,23 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     /// observing views.
     private func applySnapshot(_ snapshot: StreamSessionSnapshot) {
         self.sessionSnapshot = snapshot
+    }
+
+    private func waitForEncoderConnection(timeoutMs: Int) async -> Bool {
+        if encoderBridge.isConnected {
+            return true
+        }
+
+        let stepNs: UInt64 = 250_000_000
+        let maxAttempts = max(1, timeoutMs / 250)
+        for _ in 0..<maxAttempts {
+            if encoderBridge.isConnected {
+                return true
+            }
+            try? await Task.sleep(nanoseconds: stepNs)
+        }
+
+        return encoderBridge.isConnected
     }
 
     /// After stopping, wait a short time then reset to .idle.

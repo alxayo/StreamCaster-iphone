@@ -6,10 +6,8 @@ import Foundation
 ///
 /// SECURITY RULES:
 /// 1. RTMPS (rtmps://) — Always allowed. Uses system TLS. No custom cert bypass.
-/// 2. RTMP (rtmp://) with credentials — BLOCKED. Stream keys and passwords
-///    must NEVER be sent in plaintext. This is a hard security requirement.
-/// 3. RTMP (rtmp://) without credentials — Allowed. Some test/local servers
-///    don't need authentication, and plaintext is acceptable for those.
+/// 2. RTMP (rtmp://) — Allowed with warning. Plaintext transport is still
+///    insecure, but some ingest servers only support RTMP.
 ///
 /// We use iOS's built-in TLS (Network.framework / URLSession). We NEVER:
 /// - Override SecTrustEvaluate
@@ -25,11 +23,6 @@ struct TransportSecurityValidator {
     enum ValidationResult: Equatable {
         /// Safe to proceed — the URL uses RTMPS (encrypted).
         case allowed
-
-        /// BLOCKED — the URL uses plain rtmp:// AND there are credentials
-        /// (stream key, username, or password) that would be sent in cleartext.
-        /// The connection must NOT proceed.
-        case blockedPlaintextWithCredentials
 
         /// The URL uses plain rtmp://, but there are no credentials.
         /// Warn the user but let them continue if they want to.
@@ -49,22 +42,12 @@ struct TransportSecurityValidator {
         // Step 1: Is the URL encrypted (rtmps://)?
         let isSecure = isSecureURL(profile.rtmpUrl)
 
-        // Step 2: Does the profile contain any secrets?
-        // A stream key, username, or password counts as credentials.
-        let hasCredentials = !profile.streamKey.isEmpty ||
-                             profile.username != nil ||
-                             profile.password != nil
-
-        // Step 3: Apply the security rules.
+        // Step 2: Apply the security rules.
         // RTMPS is always fine — traffic is encrypted.
         if isSecure { return .allowed }
 
-        // Plain RTMP + credentials = BLOCKED.
-        // Sending secrets in cleartext is never acceptable.
-        if hasCredentials { return .blockedPlaintextWithCredentials }
-
-        // Plain RTMP without credentials = warn but allow.
-        // Useful for local test servers (e.g., rtmp://localhost/live).
+        // Plain RTMP = warn but allow.
+        // Useful for ingest services that do not support RTMPS.
         return .warningPlaintext
     }
 

@@ -1,0 +1,74 @@
+name: StreamCaster
+options:
+  minimumXcodeGenVersion: 2.45.0
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: 5.0
+    IPHONEOS_DEPLOYMENT_TARGET: 15.0
+packages:
+  HaishinKit:
+    url: https://github.com/shogo4405/HaishinKit.swift.git
+    from: 2.2.4
+  KSCrash:
+    url: https://github.com/kstenerud/KSCrash.git
+    from: 2.5.1
+targets:
+  StreamCaster:
+    type: application
+    platform: iOS
+    deploymentTarget: 15.0
+    sources:
+      - path: StreamCaster/App
+      - path: StreamCaster/Audio
+      - path: StreamCaster/Camera
+      - path: StreamCaster/Crash
+      - path: StreamCaster/Data
+      - path: StreamCaster/Overlay
+      - path: StreamCaster/Services
+      - path: StreamCaster/Thermal
+      - path: StreamCaster/Utilities
+      - path: StreamCaster/ViewModels
+      - path: StreamCaster/Views
+    resources:
+      - path: StreamCaster/Resources
+    dependencies:
+      - package: HaishinKit
+        product: HaishinKit
+      - package: HaishinKit
+        product: RTMPHaishinKit
+      - package: KSCrash
+        product: Recording
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.port80.app
+        PRODUCT_NAME: StreamCaster
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: StreamCaster/Info.plist
+        CODE_SIGN_ENTITLEMENTS: StreamCaster/StreamCaster.entitlements
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 1.0
+        TARGETED_DEVICE_FAMILY: 1,2
+  StreamCasterTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: 15.0
+    sources:
+      - path: StreamCasterTests
+    dependencies:
+      - target: StreamCaster
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.port80.app.tests
+        GENERATE_INFOPLIST_FILE: YES
+        IPHONEOS_DEPLOYMENT_TARGET: 15.0
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/StreamCaster.app/StreamCaster
+        BUNDLE_LOADER: $(TEST_HOST)
+schemes:
+  StreamCaster:
+    build:
+      targets:
+        StreamCaster: all
+    test:
+      targets:
+        - name: StreamCasterTests

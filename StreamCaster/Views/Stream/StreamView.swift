@@ -91,6 +91,11 @@ struct StreamView: View {
                 // Top: HUD bar showing stats
                 StreamHudView(viewModel: viewModel)
 
+                if let errorMessage = viewModel.errorMessage {
+                    errorBanner(message: errorMessage)
+                        .padding(.top, 8)
+                }
+
                 Spacer()
 
                 // Bottom: Control buttons (mute, start/stop, camera switch)
@@ -100,6 +105,31 @@ struct StreamView: View {
         }
         // Keep the status bar light (white) since the background is dark
         .preferredColorScheme(.dark)
+    }
+
+    private func errorBanner(message: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundColor(.yellow)
+
+            Text(message)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.white)
+                .multilineTextAlignment(.leading)
+
+            Spacer(minLength: 8)
+
+            Button {
+                viewModel.dismissError()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.white.opacity(0.85))
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color.red.opacity(0.82))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
     // MARK: - Control Bar

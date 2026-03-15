@@ -43,8 +43,10 @@ let package = Package(
             dependencies: [
                 // Use the HaishinKit library in our main target
                 .product(name: "HaishinKit", package: "HaishinKit.swift"),
+                // RTMP protocol stack used by the encoder bridge
+                .product(name: "RTMPHaishinKit", package: "HaishinKit.swift"),
                 // Use KSCrash recording module for crash reporting
-                .product(name: "KSCrashRecording", package: "KSCrash"),
+                .product(name: "Recording", package: "KSCrash"),
             ],
             path: "."
         ),

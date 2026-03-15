@@ -73,6 +73,7 @@ final class DependencyContainer {
     /// The main streaming engine — connects to the RTMP server, manages
     /// the camera/microphone, and publishes real-time state updates.
     /// Uses the singleton instance so all parts of the app share one engine.
+    @MainActor
     lazy var streamingEngine: StreamingEngineProtocol = {
         StreamingEngine.shared
     }()

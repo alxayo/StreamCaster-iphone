@@ -90,12 +90,6 @@ struct ConnectionTester {
         let securityResult = TransportSecurityValidator.validate(profile: profile)
 
         switch securityResult {
-        case .blockedPlaintextWithCredentials:
-            // Credentials + plain rtmp:// = blocked immediately.
-            return .securityBlocked(
-                message: "Blocked: credentials would be sent in plaintext. "
-                       + "Change the URL to rtmps:// or remove credentials."
-            )
         case .warningPlaintext, .allowed:
             // OK to proceed (warning case is just a UI hint, not a block).
             break

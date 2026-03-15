@@ -25,6 +25,7 @@
 //   handler.startObserving()
 
 import Foundation
+@preconcurrency import AVFoundation
 import AVFoundation
 import Combine
 import UIKit
@@ -291,6 +292,10 @@ final class CameraInterruptionHandler {
             // to a video interruption if PiP was relying on the
             // audio session.
             return .audioSession
+
+        case .videoDeviceInUseByAnotherClient,
+             .sensitiveContentMitigationActivated:
+            return .cameraUnavailable
 
         @unknown default:
             // Future-proofing: treat unknown reasons as generic

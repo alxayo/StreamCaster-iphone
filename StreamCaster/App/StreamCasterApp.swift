@@ -83,7 +83,7 @@ struct StreamCasterApp: App {
                 if !hasCheckedPermissions {
                     // Brief blank screen while we check permission status.
                     // This avoids flashing the wrong screen on launch.
-                    Color("DarkSurface", bundle: nil)
+                    Color(uiColor: UIColor(named: "DarkSurface") ?? .black)
                         .ignoresSafeArea()
                 } else if hasRequiredPermissions {
                     // All required permissions are granted — show the stream!
@@ -190,7 +190,7 @@ private struct SecurityCurtainView: View {
         ZStack {
             // Use the app's dark surface color for a polished look.
             // Falls back to plain black if the color isn't in the asset catalog.
-            Color("DarkSurface", bundle: nil)
+            Color(uiColor: UIColor(named: "DarkSurface") ?? .black)
                 .ignoresSafeArea()
 
             // Show the app name so the user knows which app this is

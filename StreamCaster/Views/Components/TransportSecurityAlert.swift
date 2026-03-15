@@ -24,8 +24,6 @@ struct TransportSecurityAlert: View {
         VStack(spacing: 20) {
             // Pick the right alert content based on the validation result.
             switch validationResult {
-            case .blockedPlaintextWithCredentials:
-                blockedAlertContent
             case .warningPlaintext:
                 warningAlertContent
             case .allowed:
@@ -40,49 +38,9 @@ struct TransportSecurityAlert: View {
         .padding(32)
     }
 
-    // MARK: - Blocked Alert (rtmp:// + credentials)
-
-    /// Shows a hard-block alert when credentials would be sent in plaintext.
-    /// There is NO "proceed anyway" option — this is a security requirement.
-    private var blockedAlertContent: some View {
-        VStack(spacing: 16) {
-            // Red shield icon to signal danger
-            Image(systemName: "xmark.shield.fill")
-                .font(.system(size: 48))
-                .foregroundColor(.red)
-
-            // Title
-            Text("Security Error")
-                .font(.title2)
-                .fontWeight(.bold)
-
-            // Explanation of why we're blocking
-            Text("Your stream key and credentials would be sent in plaintext over an unencrypted connection. This is not allowed.")
-                .font(.body)
-                .multilineTextAlignment(.center)
-                .foregroundColor(.secondary)
-
-            // Tell the user how to fix it
-            Text("Change your URL to rtmps:// to continue.")
-                .font(.callout)
-                .fontWeight(.semibold)
-                .multilineTextAlignment(.center)
-
-            // Only a dismiss button — no way to proceed
-            Button(action: onDismiss) {
-                Text("Dismiss")
-                    .fontWeight(.semibold)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.red)
-        }
-    }
-
     // MARK: - Warning Alert (rtmp:// without credentials)
 
-    /// Shows a warning when using plain rtmp:// without credentials.
+    /// Shows a warning when using plain rtmp://.
     /// The user can choose to proceed anyway or cancel.
     private var warningAlertContent: some View {
         VStack(spacing: 16) {
@@ -97,7 +55,7 @@ struct TransportSecurityAlert: View {
                 .fontWeight(.bold)
 
             // Explanation of the risk
-            Text("This connection is not encrypted. Your stream data will be sent in plaintext and could be intercepted.")
+            Text("This connection is not encrypted. Stream traffic and credentials can be intercepted on untrusted networks.")
                 .font(.body)
                 .multilineTextAlignment(.center)
                 .foregroundColor(.secondary)

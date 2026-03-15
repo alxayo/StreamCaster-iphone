@@ -10,6 +10,7 @@ import UIKit
 /// View models talk to the engine exclusively through this protocol, which
 /// makes it easy to swap in a mock for testing or a different streaming
 /// library in the future.
+@MainActor
 protocol StreamingEngineProtocol: AnyObject {
 
     // MARK: Current State
