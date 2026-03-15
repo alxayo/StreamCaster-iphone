@@ -1,0 +1,7 @@
+{
+  "sessionId": "cli-20260315-155606-d364b214",
+  "toolName": "bash",
+  "resultType": "failure",
+  "textResultForLlm": "Command blocked: contains dangerous shell expansion patterns (e.g., parameter transformation, indirect expansion, or nested command substitution) that could enable arbitrary code execution. Please rewrite the command without these expansion patterns.",
+  "timestamp": 1773592938251
+}
