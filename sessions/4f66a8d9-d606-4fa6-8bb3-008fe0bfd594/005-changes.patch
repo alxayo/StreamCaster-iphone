@@ -1,0 +1,13 @@
+diff --git a/StreamCaster/Package.swift b/StreamCaster/Package.swift
+index 3e34528..3c8690e 100644
+--- a/StreamCaster/Package.swift
++++ b/StreamCaster/Package.swift
+@@ -44,7 +44,7 @@ let package = Package(
+                 // Use the HaishinKit library in our main target
+                 .product(name: "HaishinKit", package: "HaishinKit.swift"),
+                 // Use KSCrash recording module for crash reporting
+-                .product(name: "KSCrashRecording", package: "KSCrash"),
++                .product(name: "Recording", package: "KSCrash"),
+             ],
+             path: "."
+         ),
