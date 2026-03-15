@@ -1,0 +1,10 @@
+{
+  "sessionId": "cli-20260315-155606-d364b214",
+  "toolName": "read_agent",
+  "toolArgs": {
+    "agent_id": "agent-22",
+    "timeout": 300,
+    "wait": true
+  },
+  "timestamp": 1773592196892
+}
