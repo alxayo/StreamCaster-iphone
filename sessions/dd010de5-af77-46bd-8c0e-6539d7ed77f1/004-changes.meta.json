@@ -1,0 +1,9 @@
+{
+  "sessionId": "dd010de5-af77-46bd-8c0e-6539d7ed77f1",
+  "filePath": "/Users/alex/Code/rtmp-client/iphone/.github/hooks/scripts-cli/audit-common.sh",
+  "workspaceHead": "d03a6be51e249420980ba678a402faff5f03583d",
+  "fileContentHash": "13b16cb05f5854625a03b1cf025a4c04b4b62cad",
+  "timestamp": "2026-03-15T13:32:03.966Z",
+  "toolName": "multi_replace_string_in_file",
+  "patchFile": "004-changes.patch"
+}
