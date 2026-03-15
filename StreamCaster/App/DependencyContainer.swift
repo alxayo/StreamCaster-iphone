@@ -51,8 +51,7 @@ final class DependencyContainer {
     /// Reads and writes user preferences (resolution, bitrate, etc.)
     /// backed by UserDefaults.
     lazy var settingsRepository: SettingsRepository = {
-        // TODO: Replace with real implementation (e.g., UserDefaultsSettingsRepository)
-        fatalError("SettingsRepository not yet implemented")
+        UserDefaultsSettingsRepository()
     }()
 
     /// Manages RTMP endpoint profiles (server URL + stream key).
@@ -102,8 +101,7 @@ final class DependencyContainer {
     /// like watermarks, chat messages, or a "LIVE" badge to be
     /// composited on top of the camera feed.
     lazy var overlayManager: OverlayManager = {
-        // TODO: Replace with real implementation (e.g., CoreImageOverlayManager)
-        fatalError("OverlayManager not yet implemented")
+        NoOpOverlayManager()
     }()
 
     // MARK: - System Monitors
