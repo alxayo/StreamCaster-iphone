@@ -4,8 +4,8 @@
     "sessionStart": [
       {
         "type": "command",
-       // "bash": "./scripts-cli/session-start.sh",
-       // "powershell": "./scripts-cli/session-start.ps1",
+        "bash": "./scripts-cli/session-start.sh",
+        "powershell": "./scripts-cli/session-start.ps1",
         "cwd": ".github/hooks",
         "timeoutSec": 30
       }
@@ -13,8 +13,8 @@
     "userPromptSubmitted": [
       {
         "type": "command",
-       // "bash": "./scripts-cli/commit-prompt.sh",
-      //  "powershell": "./scripts-cli/commit-prompt.ps1",
+        "bash": "./scripts-cli/commit-prompt.sh",
+        "powershell": "./scripts-cli/commit-prompt.ps1",
         "cwd": ".github/hooks",
         "timeoutSec": 15
       }
@@ -22,8 +22,8 @@
     "preToolUse": [
       {
         "type": "command",
-      //  "bash": "./scripts-cli/pre-tool-use.sh",
-      //  "powershell": "./scripts-cli/pre-tool-use.ps1",
+        "bash": "./scripts-cli/pre-tool-use.sh",
+        "powershell": "./scripts-cli/pre-tool-use.ps1",
         "cwd": ".github/hooks",
         "timeoutSec": 15
       }
