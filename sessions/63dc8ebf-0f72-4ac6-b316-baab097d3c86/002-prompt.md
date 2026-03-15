@@ -1,0 +1,4 @@
+# User Prompt
+
+I have added #SPECIFICATION.md and #IMPLEMENTATION_PLAN.md which specifiy and providee detail how to build an Android RTMP streaming client. I need you to review the specificaion and the implementationplan and craete new one that will build an iOS application with exactlythe same specification. The only difference is the platform It is not ANDROID but iOS. All Android specifics and calls must be replaced with iOS. Also you must review the tech choises and recomend which will be the best rechnolofy stac for iOS so that the application work onthe wides possible devices and if you need a RTMP library as the one that is used in this plan is for Android and Kotil whcih is incompatiable with iOS.
+Ask me questions in you need addtional guidance and clarification specificaly when doing research and selecting technology stack.
