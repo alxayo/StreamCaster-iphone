@@ -1,0 +1,221 @@
+diff --git a/.github/hooks/copilot-cli-audit.json b/.github/hooks/copilot-cli-audit.json
+index 355e223..7ab38ac 100644
+--- a/.github/hooks/copilot-cli-audit.json
++++ b/.github/hooks/copilot-cli-audit.json
+@@ -31,27 +31,27 @@
+     "postToolUse": [
+       {
+         "type": "command",
+-        "bash": "./scripts-cli/commit-changes.sh",
+-        "powershell": "./scripts-cli/commit-changes.ps1",
+-        "cwd": ".github/hooks",
++        //"bash": "./scripts-cli/commit-changes.sh",
++        //"powershell": "./scripts-cli/commit-changes.ps1",
++        //"cwd": ".github/hooks",
+         "timeoutSec": 15
+       }
+     ],
+     "sessionEnd": [
+       {
+         "type": "command",
+-        "bash": "./scripts-cli/finalize-session.sh",
+-        "powershell": "./scripts-cli/finalize-session.ps1",
+-        "cwd": ".github/hooks",
++        //"bash": "./scripts-cli/finalize-session.sh",
++        //"powershell": "./scripts-cli/finalize-session.ps1",
++        //"cwd": ".github/hooks",
+         "timeoutSec": 30
+       }
+     ],
+     "errorOccurred": [
+       {
+         "type": "command",
+-        "bash": "./scripts-cli/log-error.sh",
+-        "powershell": "./scripts-cli/log-error.ps1",
+-        "cwd": ".github/hooks",
++        //"bash": "./scripts-cli/log-error.sh",
++        //"powershell": "./scripts-cli/log-error.ps1",
++        //"cwd": ".github/hooks",
+         "timeoutSec": 10
+       }
+     ]
+diff --git a/IOS_IMPLEMENTATION_PLAN.md b/IOS_IMPLEMENTATION_PLAN.md
+index 405365e..5f082f1 100644
+--- a/IOS_IMPLEMENTATION_PLAN.md
++++ b/IOS_IMPLEMENTATION_PLAN.md
+@@ -1,7 +1,7 @@
+ # Technical Implementation Plan — StreamCaster iOS
+ 
+ **Generated:** 2026-03-15
+-**Source:** IOS_SPECIFICATION.md v2.0 (Hardened)
++**Source:** IOS_SPECIFICATION.md v2.1 (Post-Adversarial Revision)
+ **Bundle ID:** `com.port80.app`
+ 
+ ---
+@@ -20,8 +20,8 @@
+ 
+ ### Platform Constraints Affecting Execution
+ - **Min deployment iOS 15.0 / target iOS 18**: every API-conditional path must check `#available(iOS xx, *)` or `@available(iOS xx, *)`.
+-- **PiP (Picture-in-Picture):** requires `AVPictureInPictureController.ContentSource` with `AVSampleBufferDisplayLayer` (iOS 15+). Must declare `UIBackgroundModes: audio` in `Info.plist`.
+-- **No foreground service equivalent:** iOS suspends apps; PiP + background audio mode is the only way to keep streaming alive.
++- **PiP (Picture-in-Picture):** requires `AVPictureInPictureController.ContentSource` with `AVSampleBufferDisplayLayer` (iOS 15+). Must declare `UIBackgroundModes: audio` in `Info.plist`. Background video is best-effort only; PiP failure or camera starvation must degrade to audio-only or stop.
++- **No foreground service equivalent:** iOS suspends apps aggressively; PiP + background audio mode is only a best-effort continuity strategy.
+ - **Keychain:** `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` — credentials not transferred to new devices.
+ - **ProcessInfo.ThermalState:** available on all supported iOS versions (iOS 11+). No version-conditional fallback needed.
+ - **AVAudioSession interruptions:** incoming calls and Siri activation interrupt audio. Must handle `.interruptionNotification`.
+@@ -32,7 +32,7 @@
+ ## 2. Architecture Baseline (Implementation View)
+ 
+ ### Core Modules to Implement First (in order)
+-1. **Data layer contracts** — `StreamState`, `EndpointProfile`, `StreamConfig` enums/structs.
++1. **Data layer contracts** — `StreamSessionSnapshot`, `TransportState`, `EndpointProfile`, `StreamConfig` enums/structs.
+ 2. **Protocol definitions** — `SettingsRepository`, `EndpointProfileRepository`, `StreamingEngineProtocol`.
+ 3. **DI container** — Protocol-based factories providing all dependencies.
+ 4. **StreamingEngine** — Singleton owning HaishinKit, authoritative state source.
+@@ -42,7 +42,7 @@
+ ### Source-of-Truth Boundaries
+ | Boundary | Owner | Consumers |
+ |---|---|---|
+-| Stream state (`StreamState`) | `StreamingEngine` via `@Published` | `StreamViewModel` → UI |
++| Stream lifecycle snapshot (`StreamSessionSnapshot`) | `StreamingEngine` via `@Published` | `StreamViewModel` → UI |
+ | User settings | `SettingsRepository` (UserDefaults) | `SettingsViewModel`, `StreamingEngine` |
+ | Credentials & profiles | `EndpointProfileRepository` (Keychain) | `StreamingEngine` (reads at connect time) |
+ | Device capabilities | `DeviceCapabilityQuery` (read-only AVFoundation) | `SettingsViewModel` (UI filtering) |
+@@ -52,7 +52,7 @@
+ 
+ ```
+ UI Layer (SwiftUI)
+-    │ observes @Published StreamState
++    │ observes @Published StreamSessionSnapshot
+     │ calls StreamViewModel actions (startStream, stopStream, mute, switchCamera)
+     ▼
+ StreamViewModel (@ObservableObject)
+@@ -63,7 +63,7 @@ StreamingEngine (Singleton)
+     │ owns RTMPConnection, RTMPStream, ConnectionManager, EncoderController
+     │ reads credentials from EndpointProfileRepository
+     │ reads config from SettingsRepository
+-    │ exposes @Published StreamState, @Published StreamStats
++    │ exposes @Published StreamSessionSnapshot, @Published StreamStats
+     ▼
+ HaishinKit (RTMPStream + RTMPConnection)
+     │ AVFoundation capture → VideoToolbox H.264 → RTMP mux → network
+@@ -151,6 +151,8 @@ enum StopReason: String, Codable {
+     case errorAudio
+     case thermalCritical
+     case batteryCritical
++    case pipFailure
++    case pipDismissed
+ }
+ 
+ enum StreamState: Equatable {
+@@ -239,16 +241,16 @@ struct StreamConfig: Equatable {
+ | Task ID | Title | Objective | Scope (In/Out) | Inputs | Deliverables | Dependencies | Parallelizable | Owner Profile | Effort | Risk Level | Verification Command | Files/Packages Likely Touched |
+ |---|---|---|---|---|---|---|---|---|---|---|---|---|
+ | T-001 | Project Scaffolding & Xcode Setup | Create buildable project skeleton with SPM, SwiftUI App, entitlements, Info.plist, schemes | In: Xcode project, Info.plist, entitlements, empty App. Out: any feature code | Spec §2, §13, §14, §16 | Compiling empty app, both schemes | None | Yes | DevOps/iOS | M (2d) | Low | `xcodebuild -scheme StreamCaster -sdk iphonesimulator build` | `*.xcodeproj`, `Info.plist`, `StreamCasterApp.swift`, `AppDelegate.swift`, `*.entitlements` |
+-| T-002 | Data Models & Protocol Contracts | Define all shared structs, enums, and protocols | In: StreamState, StopReason, EndpointProfile, StreamConfig, StreamStats, ThermalLevel, all protocols. Out: implementations | Spec §6.2, §4 | Compilable `Models/` package + protocols | None | Yes | iOS | S (1d) | Low | `xcodebuild build` | `Data/Models/*`, protocols in `Services/`, `Camera/`, `Overlay/`, `Thermal/`, `Audio/` |
++| T-002 | Data Models & Protocol Contracts | Define all shared structs, enums, and protocols | In: `StreamSessionSnapshot`, `TransportState`, `StopReason`, `EndpointProfile`, `StreamConfig`, `StreamStats`, `ThermalLevel`, all protocols. Out: implementations | Spec §6.2, §4 | Compilable `Models/` package + protocols | None | Yes | iOS | S (1d) | Low | `xcodebuild build` | `Data/Models/*`, protocols in `Services/`, `Camera/`, `Overlay/`, `Thermal/`, `Audio/` |
+ | T-003 | DI Container & Factories | Wire all protocol bindings, provide app-scoped singletons | In: DI providers. Out: actual impl injection | Spec §2, §6.2 | `DependencyContainer.swift` | T-001, T-002 | No | iOS | S (1d) | Low | `xcodebuild build` | `App/DependencyContainer.swift` |
+ | T-004 | SettingsRepository (UserDefaults) | Implement non-sensitive settings persistence using UserDefaults with `@AppStorage`-compatible keys | In: resolution, fps, bitrate prefs, orientation, ABR toggle, camera default, reconnect config, battery threshold. Out: credential storage | Spec §4.2–4.5, §6.2 | `SettingsRepository.swift` impl + unit tests | T-002, T-003 | Yes (after T-002) | iOS | S (1d) | Low | `xcodebuild test -scheme StreamCaster -only-testing:StreamCasterTests/SettingsRepositoryTests` | `Data/SettingsRepository.swift` |
+ | T-005 | EndpointProfileRepository (Keychain) | CRUD for RTMP endpoint profiles with Keychain Services. No plaintext fallback. Handle missing key on new device | In: profile CRUD, encryption. Out: RTMP connection logic | Spec §4.4, §9.1, §9.2 | `EndpointProfileRepository.swift`, `KeychainHelper.swift` + unit tests | T-002, T-003 | Yes (after T-002) | iOS/Security | M (2d) | Medium | `xcodebuild test -scheme StreamCaster -only-testing:StreamCasterTests/EndpointProfileRepositoryTests` | `Data/EndpointProfileRepository.swift`, `Data/KeychainHelper.swift` |
+-| T-006 | DeviceCapabilityQuery | Query AVCaptureDevice.DiscoverySession + AVCaptureDevice.formats for supported resolutions, fps, codec profiles. Read-only — never activates camera | In: capability enumeration. Out: camera open/preview | Spec §5.3, §6.2, §8.1 | `DeviceCapabilityQuery.swift` protocol + `AVDeviceCapabilityQuery.swift` impl | T-002, T-003 | Yes (after T-002) | iOS | M (2d) | Medium | `xcodebuild test -destination 'platform=iOS' -only-testing:StreamCasterTests/DeviceCapabilityTests` | `Camera/DeviceCapabilityQuery.swift`, `Camera/AVDeviceCapabilityQuery.swift` |
+-| T-007a | StreamingEngine (Lifecycle & State Machine) | Implement StreamingEngine singleton with state machine, protocol-based engine interface. Uses stub encoder bridge — no HaishinKit dependency. Unblocks all downstream consumers | In: Engine lifecycle, state machine. Out: HaishinKit integration, stats polling, camera | Spec §6.2, §7.2, §9.1 | `StreamingEngine.swift` (skeleton), `EncoderBridge.swift` (protocol/stub) | T-002, T-003, T-005 | No | iOS | M (2d) | High | `xcodebuild test -only-testing:StreamCasterTests/StreamingEngineTests` | `Services/StreamingEngine.swift`, `Services/EncoderBridge.swift` |
++| T-006 | DeviceCapabilityQuery | Query AVCaptureDevice.DiscoverySession + AVCaptureDevice.formats. **Strictly filter out 60fps on Tier 1 (A10/A11) devices regardless of hardware support.** Read-only — never activates camera | In: capability enumeration. Out: camera open/preview | Spec §5.3, §6.2, §8.1 | `DeviceCapabilityQuery.swift` protocol + `AVDeviceCapabilityQuery.swift` impl | T-002, T-003 | Yes (after T-002) | iOS | M (2d) | Medium | `xcodebuild test -destination 'platform=iOS' -only-testing:StreamCasterTests/DeviceCapabilityTests` | `Camera/DeviceCapabilityQuery.swift`, `Camera/AVDeviceCapabilityQuery.swift` |
++| T-007a | StreamingEngine (Lifecycle & State Machine) | Implement StreamingEngine as **MainActor-isolated class** wrapping private **actor Coordinator**. Protocol-based engine interface including **SampleBufferAccess** stubs. Uses stub encoder bridge. Unblocks all downstream consumers | In: Engine lifecycle, state machine. Out: HaishinKit integration, stats polling, camera | Spec §6.2, §7.2, §9.1 | `StreamingEngine.swift` (skeleton), `EncoderBridge.swift` (protocol/stub) | T-002, T-003, T-005 | No | iOS | M (2d) | High | `xcodebuild test -only-testing:StreamCasterTests/StreamingEngineTests` | `Services/StreamingEngine.swift`, `Services/EncoderBridge.swift` |
+ | T-007b | StreamingEngine (HaishinKit Integration) | Integrate HaishinKit `RTMPConnection` + `RTMPStream`: camera/audio capture, 1 Hz stats polling, encoder callbacks, camera interruption handling | In: HaishinKit integration, stats polling, encoder error recovery. Out: reconnect, ABR, thermal | Spec §6.2, §8.1, §11 | `StreamingEngine.swift` (complete), HaishinKit callbacks wired | T-007a | Yes (after T-007a) | iOS | M (2d) | High | Manual: stream to test RTMP server, verify HUD stats | `Services/StreamingEngine.swift` |
+ | T-008 | NowPlayingController | MPNowPlayingInfoCenter + MPRemoteCommandCenter: display stream status (title, duration), play/pause (start/stop), custom mute command | In: Lock Screen/Control Center controls. Out: — | Spec §7.4, §4.6 SL-04 | `NowPlayingController.swift` | T-007a | No | iOS | M (1.5d) | Medium | `xcodebuild test -only-testing:StreamCasterTests/NowPlayingControllerTests` | `Services/NowPlayingController.swift` |
+-| T-009 | ConnectionManager (RTMP Connect/Reconnect) | RTMP/RTMPS connect, disconnect, auto-reconnect with exponential backoff + jitter, NWPathMonitor integration. Drives `StreamState` transitions directly on the engine's `@Published` property | In: connection lifecycle. Out: ABR, thermal triggers | Spec §4.6 SL-02, §11 | `ConnectionManager.swift` + unit tests | T-002, T-007a | No | iOS | L (3d) | High | `xcodebuild test -only-testing:StreamCasterTests/ConnectionManagerTests` | `Services/ConnectionManager.swift` |
+-| T-010 | StreamViewModel & Engine Binding | ViewModel observes StreamingEngine, projects StreamState + StreamStats as `@Published` properties for SwiftUI, manages preview view lifecycle | In: ViewModel. Out: UI views | Spec §6.2, §7.2 | `StreamViewModel.swift` + unit tests | T-002, T-007a | No | iOS | M (2d) | Medium | `xcodebuild test -only-testing:StreamCasterTests/StreamViewModelTests` | `ViewModels/StreamViewModel.swift` |
++| T-009 | ConnectionManager (RTMP Connect/Reconnect) | RTMP/RTMPS connect, disconnect, auto-reconnect with exponential backoff + jitter, NWPathMonitor integration. Submits intents to the engine coordinator; does not mutate published UI state directly | In: connection lifecycle. Out: ABR, thermal triggers | Spec §4.6 SL-02, §11 | `ConnectionManager.swift` + unit tests | T-002, T-007a | No | iOS | L (3d) | High | `xcodebuild test -only-testing:StreamCasterTests/ConnectionManagerTests` | `Services/ConnectionManager.swift` |
++| T-010 | StreamViewModel & Engine Binding | ViewModel observes StreamingEngine, projects `StreamSessionSnapshot` + `StreamStats` as `@Published` properties for SwiftUI, manages preview view lifecycle | In: ViewModel. Out: UI views | Spec §6.2, §7.2 | `StreamViewModel.swift` + unit tests | T-002, T-007a | No | iOS | M (2d) | Medium | `xcodebuild test -only-testing:StreamCasterTests/StreamViewModelTests` | `ViewModels/StreamViewModel.swift` |
+ | T-011 | Camera Preview View | UIViewRepresentable wrapping HaishinKit `MTHKView`, lifecycle management via Coordinator, no strong UIView references across SwiftUI redraws | In: preview UI. Out: HUD, controls | Spec §4.1 MC-03 | `CameraPreviewView.swift` | T-010 | No | iOS | M (2d) | Medium | Manual: preview appears on device | `Views/Components/CameraPreviewView.swift` |
+ | T-012 | Stream Screen UI (Controls + HUD) | Start/Stop button, mute button, camera-switch button, status badge, recording indicator, HUD overlay (bitrate, fps, duration, connection status, thermal badge). Landscape-first layout with portrait variant | In: SwiftUI UI. Out: settings screens | Spec §10.1, §10.3 | `StreamView.swift`, `StreamHudView.swift` | T-010, T-011 | No | iOS | M (2d) | Low | XCUITest: `xcodebuild test -only-testing:StreamCasterUITests/StreamViewUITests` | `Views/Stream/StreamView.swift`, `Views/Stream/StreamHudView.swift` |
+ | T-013 | Runtime Permissions Handler | SwiftUI-compatible permission flow for Camera, Microphone, Photos Library. Rationale alerts, denial handling (open Settings), mode fallback | In: permission UI. Out: — | Spec §9.4, §9.5 | `PermissionHandler.swift` | T-001 | Yes | iOS | S (1d) | Low | `xcodebuild test -only-testing:StreamCasterTests/PermissionHandlerTests` | `Views/Components/PermissionHandler.swift` |
+@@ -256,14 +258,14 @@ struct StreamConfig: Equatable {
+ | T-015 | Settings Screens (Video/Audio/General) | Resolution picker (filtered by DeviceCapabilityQuery), fps picker, bitrate controls, audio settings, ABR toggle, camera default, orientation, reconnect config, battery threshold, media mode selection | In: UI. Out: — | Spec §4.2, §4.3, §10.1 | `VideoAudioSettingsView.swift`, `GeneralSettingsView.swift`, `SettingsViewModel.swift` | T-004, T-006 | Yes (after T-004) | iOS | M (2d) | Low | `xcodebuild test -only-testing:StreamCasterTests/SettingsViewModelTests` | `Views/Settings/*`, `ViewModels/SettingsViewModel.swift` |
+ | T-016 | Endpoint Setup Screen | RTMP URL input, stream key, username/password, Test Connection button, Save as Default, profile CRUD list. Transport security warnings (§9.2) | In: UI. Out: — | Spec §4.4, §9.2 | `EndpointSettingsView.swift` | T-005, T-015 | Yes (after T-005) | iOS | M (2d) | Medium | `xcodebuild test -only-testing:StreamCasterTests/EndpointSettingsTests` | `Views/Settings/EndpointSettingsView.swift` |
+ | T-017 | SwiftUI Navigation | NavigationStack (iOS 16+) / NavigationView (iOS 15) with routes: Stream, EndpointSetup, VideoAudioSettings, GeneralSettings | In: navigation. Out: — | Spec §10.2 | Navigation setup in `StreamCasterApp.swift` or root view | T-012, T-015, T-016 | No | iOS | S (0.5d) | Low | App launches and navigates all routes | `App/StreamCasterApp.swift` |
+-| T-018 | RTMPS & Transport Security Enforcement | RTMPS via system TLS (Network.framework). Warn+confirm dialog for credentials over plaintext RTMP. Connection test obeys same rules. No custom SecTrustEvaluate, no NSAllowsArbitraryLoads | In: transport security. Out: — | Spec §9.2, §5 NF-08 | Security logic in `ConnectionManager` + `TransportSecurityAlert` | T-009, T-016 | No | iOS/Security | M (2d) | High | Unit test: auth over rtmp:// triggers warning. Grep: no SecTrustEvaluate override | `Services/ConnectionManager.swift`, `Views/Components/TransportSecurityAlert.swift` |
++| T-018 | RTMPS & Transport Security Enforcement | RTMPS via system TLS (Network.framework). Hard-reject secret-bearing plaintext RTMP. Anonymous plaintext RTMP allowed only for secret-free endpoints. Connection test obeys same rules. No custom SecTrustEvaluate, no NSAllowsArbitraryLoads | In: transport security. Out: — | Spec §9.2, §5 NF-08 | Security logic in `ConnectionManager` + `TransportSecurityAlert` | T-009, T-016 | No | iOS/Security | M (2d) | High | Unit test: auth/key over rtmp:// is rejected before network send. Grep: no SecTrustEvaluate override | `Services/ConnectionManager.swift`, `Views/Components/TransportSecurityAlert.swift` |
+ | T-019 | Adaptive Bitrate (ABR) System | ABR ladder per device capabilities, bitrate-only reduction first, resolution/fps step-down, recovery. Encoder backpressure detection (§8.1): if output fps < 80% of configured fps for 5 consecutive seconds, trigger ABR step-down. Delivers `AbrPolicy` and `AbrLadder` that decide _when_ to step. Calls `EncoderController.requestAbrChange()` | In: ABR decision logic. Out: encoder control (owned by T-020) | Spec §4.5, §8.1, §8.2, §8.3, §8.4 | `AbrPolicy.swift`, `AbrLadder.swift` + unit tests | T-006, T-007a, T-020 | No | iOS | L (3d) | High | `xcodebuild test -only-testing:StreamCasterTests/AbrTests` | `Services/AbrPolicy.swift`, `Services/AbrLadder.swift` |
+ | T-020 | EncoderController (Actor-Serialized Quality Changes) | Swift `actor` serializing all encoder re-init requests from ABR + thermal systems. Controlled restart sequence. Owns complete public API: `requestAbrChange()`, `requestThermalChange()` | In: encoder control. Out: — | Spec §8.2, §8.3 | `EncoderController.swift` (complete public API) | T-007a | No | iOS | M (2d) | High | `xcodebuild test -only-testing:StreamCasterTests/EncoderControllerTests` | `Services/EncoderController.swift` |
+ | T-021 | Thermal Monitoring & Response | Register for `ProcessInfo.thermalStateDidChangeNotification`. Map `.nominal/.fair/.serious/.critical` to `ThermalLevel`. Progressive degradation with 60s cooldown. `.critical` → graceful stop via `StreamingEngine` | In: thermal handling. Out: — | Spec §4.6 SL-07, §5 NF-09 | `ThermalMonitor.swift` | T-002, T-007a, T-020 | Yes (after T-020) | iOS | M (1.5d) | High | `xcodebuild test -only-testing:StreamCasterTests/ThermalMonitorTests` | `Thermal/ThermalMonitor.swift` |
+ | T-022 | Audio Session Interruption Handling | Register for `AVAudioSession.interruptionNotification`. On `.began`: mute mic via AudioSessionManager, show indicator. Resume only on explicit user unmute. Coordinate with T-029 mute toggle | In: audio interruption. Out: — | Spec §4.6 SL-08, §11 | Audio interruption logic in `AudioSessionManager` | T-007a | No | iOS | S (1d) | Medium | `xcodebuild test -only-testing:StreamCasterTests/AudioSessionTests` | `Audio/AudioSessionManager.swift` |
+ | T-023 | Low Battery Handling | Monitor `UIDevice.current.batteryLevel` via `.batteryLevelDidChangeNotification`. Configurable warning threshold (default 5%). Auto-stop at ≤ 2%. Finalize local recording | In: battery. Out: — | Spec §4.6 SL-05, §11 | Battery logic in `StreamingEngine` | T-007a | Yes (after T-007a) | iOS | S (1d) | Low | `xcodebuild test -only-testing:StreamCasterTests/BatteryMonitorTests` | `Services/StreamingEngine.swift` |
+-| T-024 | Background Camera Interruption Handling | Observe `AVCaptureSession.wasInterruptedNotification`. When camera interrupted (PiP dismissed, another app takes camera): stop video track, keep audio-only if audio track active. **Video-only mode + camera interruption = graceful stop.** On foreground return: re-acquire camera, re-init video, send IDR | In: camera interruption. Out: — | Spec §4.6 SL-06, §11 | Camera interruption logic in `StreamingEngine` | T-007a, T-007b, T-008a | No | iOS | M (2d) | High | UI test: background app, dismiss PiP, verify audio continues | `Services/StreamingEngine.swift` |
+-| T-025 | Local MP4 Recording | Tee encoded sample buffers to `AVAssetWriter` (no second encoder). Photos Library via `PHPhotoLibrary` or Documents via `FileManager`. Fail fast if no access, don't block streaming. Mid-stream insufficient storage: stop recording, continue RTMP stream, notify user | In: recording. Out: — | Spec §4.1 MC-05, §11 | Recording logic in `StreamingEngine` | T-007b, T-025a | No | iOS | L (3d) | Medium | Manual: record and verify MP4 playback. Unit test: mock storage-full → recording stops, stream continues | `Services/StreamingEngine.swift` |
++| T-024 | Background Camera Interruption Handling | Observe `AVCaptureSession.wasInterruptedNotification`. When camera interrupted (PiP dismissed, another app takes camera): stop video track, keep audio-only if audio track active. **Queries T-040b PiPManager status.** **Video-only mode + camera interruption = graceful stop.** On foreground return: re-acquire camera, re-init video, send IDR | In: camera interruption. Out: — | Spec §4.6 SL-06, §11 | Camera interruption logic in `StreamingEngine` | T-007a, T-007b, T-040b | No | iOS | M (2d) | High | UI test: background app, dismiss PiP, verify audio continues | `Services/StreamingEngine.swift` |
++| T-025 | Local MP4 Recording | **Strict Blocking Requirement: T-025a (Spike).** Tee encoded sample buffers **via HaishinKit extension/IOUnit** (no second encoder). Photos Library via `PHPhotoLibrary` or Documents via `FileManager`. Fail fast if no access, don't block streaming. Mid-stream insufficient storage: stop recording, continue RTMP stream, notify user | In: recording. Out: — | Spec §4.1 MC-05, §11 | Recording logic in `StreamingEngine` | T-007b, T-025a | No | iOS | L (3d) | Critical | Manual: record and verify MP4 playback. Unit test: mock storage-full → recording stops, stream continues | `Services/StreamingEngine.swift` |
+ | T-026 | KSCrash Crash Reporting with Credential Redaction | Configure KSCrash programmatically in `AppDelegate`. Register custom `KSCrashReportFilter` consuming `CredentialSanitizer` (from T-038). HTTPS transport enforcement. Unit test verifying redaction | In: crash reporting. Out: — | Spec §9.3 | `CrashReportConfigurator.swift` + unit tests | T-001, T-038 | Yes | iOS/Security | M (2d) | High | `xcodebuild test -only-testing:StreamCasterTests/CrashReportTests` | `Crash/CrashReportConfigurator.swift` |
+ | T-027 | App Termination Recovery | On app re-launch after iOS termination: detect orphaned recording files, offer recovery/delete. Show session-ended message. Start in idle state. No automatic stream resumption | In: recovery. Out: — | Spec §7.3 | Logic in `StreamCasterApp`, `StreamingEngine` | T-010 | No | iOS | M (1.5d) | Medium | Manual: force-quit during stream, relaunch, verify behavior | `App/StreamCasterApp.swift`, `Services/StreamingEngine.swift` |
+ | T-028 | Connection Test Button | Lightweight RTMP handshake probe via HaishinKit `RTMPConnection`. 10s timeout. Obeys transport security rules. Actionable result messaging (success, timeout, auth failure, TLS error) | In: connection test. Out: — | Spec §4.4 EP-07, §12.4 | Connection test in `ConnectionManager` + UI | T-009, T-018 | No | iOS | S (1d) | Medium | `xcodebuild test -only-testing:StreamCasterTests/ConnectionTestTests` | `Services/ConnectionManager.swift`, `Views/Settings/EndpointSettingsView.swift` |
+@@ -525,13 +527,13 @@ Create the following files with full Swift code:
+ **Input Files/Paths:**
+ - `StreamCaster/Services/StreamingEngine.swift`
+ - `StreamCaster/Services/EncoderBridge.swift` (protocol/stub)
+-- Protocols: `Services/StreamingEngineProtocol.swift`, `Data/Models/StreamState.swift`, `Data/Models/StreamStats.swift`
++- Protocols: `Services/StreamingEngineProtocol.swift`, `Data/Models/StreamSessionSnapshot.swift`, `Data/Models/StreamStats.swift`
+ 
+ **Requirements:**
+ - Singleton `StreamingEngine` class conforming to `ObservableObject`.
+ - On `startStream(profileId:)`: fetch credentials from `EndpointProfileRepository` and config from `SettingsRepository` (never from function parameters — only profile ID). Validate encoder config via `AVCaptureDevice.formats` pre-flight.
+ - Define an `EncoderBridge` protocol abstracting HaishinKit RTMPStream operations (attachCamera, detachCamera, connect, disconnect, setBitrate). Provide a stub for T-007a. T-007b replaces the stub.
+-- State machine: `.idle → .connecting → .live → .stopping → .stopped`. Transitions via `@Published var streamState: StreamState`. All command methods are idempotent.
++- State model: coordinator-owned `StreamSessionSnapshot` with transport, media, background, and recording sub-state domains. Published snapshots are immutable UI projections. All command methods are idempotent.
+ - On `stopStream()`: disconnect RTMP, detach camera, transition to `.stopped(.userRequest)`.
+ - On error: attempt one re-init. If re-init fails, emit `.stopped(.errorEncoder)`.
+ 
+@@ -556,7 +558,7 @@ Create the following files with full Swift code:
+ **Requirements:**
+ - Implement `HaishinKitEncoderBridge` wrapping all `RTMPStream` + `RTMPConnection` calls.
+ - Configure resolution, fps, bitrate, audio settings from `StreamConfig` via `RTMPStream.videoSettings` and `RTMPStream.audioSettings`.
+-- Wire HaishinKit delegate callbacks: `RTMPConnection.Status` events (`.connect`, `.connectFailed`, `.close`). Map each to `StreamState` transitions.
++- Wire HaishinKit delegate callbacks: `RTMPConnection.Status` events (`.connect`, `.connectFailed`, `.close`). Map each to coordinator intents that produce updated `StreamSessionSnapshot` values.
+ - Stats collection: use a `Timer` or `Task.sleep` coroutine that polls HaishinKit metrics every 1 second and updates `@Published streamStats`.
+ - Camera may be unavailable if another app holds it; catch errors and offer audio-only.
+ - Pass `RTMPStream` reference to `EncoderController` at construction time.
+@@ -581,12 +583,12 @@ Create the following files with full Swift code:
+ **Requirements:**
+ - Use `NWPathMonitor` from Network framework for network availability events.
+ - Implement `ExponentialBackoffReconnectPolicy`: base 3s, multiplier 2x, cap 60s. Jitter: ±20%. Configurable max retry count (default: unlimited).
+-- On network drop: emit `.reconnecting(attempt, nextRetryMs)`. Start backoff timer.
++- On network drop: submit a reconnect intent that updates the published snapshot to `transport = .reconnecting(attempt, nextRetryMs)`. Start backoff timer.
+ - On `NWPathMonitor` `path.status == .satisfied`: attempt reconnect immediately (override timer).
+ - On explicit user `stopStream()`: cancel ALL pending reconnect attempts (Task cancellation). Clear retry counter.
+-- On auth failure: do NOT retry. Transition to `.stopped(.errorAuth)`.
++- On auth failure: do NOT retry. Transition to a stopped snapshot with `StopReason.errorAuth`.
+ - Thread safety: all reconnect state mutations via Swift `actor` or confined to single queue.
+-- **Do NOT define a separate `ConnectionState` type.** ConnectionManager drives transitions directly on the engine's `@Published streamState`.
++- **Do NOT let ConnectionManager own user-visible lifecycle state.** ConnectionManager submits intents to the engine coordinator, which alone publishes `StreamSessionSnapshot` updates.
+ 
+ **Success Criteria:**
+ - Unit tests: backoff timing sequence, jitter bounds, max retry cap, user-stop cancels retries, auth failure stops retries, NWPathMonitor immediate retry.
+@@ -643,7 +645,7 @@ Create the following files with full Swift code:
+ 
+ **Success Criteria:**
+ - PiP window shows when app is backgrounded during stream.
+-- Camera capture continues in PiP.
++- When backgrounding begins, the session either continues receiving camera frames in PiP or degrades cleanly to audio-only without exposing a stale video-live state.
+ - Dismissing PiP while backgrounded gracefully falls back to audio-only.
+ - Returning to foreground restores full-screen preview.
+ 
+@@ -826,7 +828,7 @@ The StreamingEngine is the architectural spine. Since iOS has no foreground serv
+ 
+ **Implementation Steps:**
+ 1. Create `StreamingEngine` as a `class` conforming to `ObservableObject`, with a `static let shared` singleton.
+-2. Define `@Published var streamState: StreamState = .idle` and `@Published var streamStats: StreamStats = StreamStats()`.
++2. Define `@Published var sessionSnapshot: StreamSessionSnapshot = .idle` and `@Published var streamStats: StreamStats = StreamStats()`.
+ 3. Define `EncoderBridge` protocol: `attachCamera(position:)`, `detachCamera()`, `connect(url:key:)`, `disconnect()`, `setBitrate(_:)`, `release()`. Provide `StubEncoderBridge`.
+ 4. Implement `startStream(profileId:)`: fetch `EndpointProfile` from repository (only profile ID as parameter). Fetch `StreamConfig` from `SettingsRepository`. Call `encoderBridge.connect()`. Transition: `.idle → .connecting → .live`.
+ 5. Implement `stopStream()`: `encoderBridge.disconnect()`. Detach camera. Cancel reconnect. Transition to `.stopped(.userRequest)`.
+@@ -969,9 +971,9 @@ enum StopReason: String, Codable, Equatable {
+ import Combine
+ 
+ protocol StreamingEngineProtocol: ObservableObject {
+-    var streamState: StreamState { get }
++    var sessionSnapshot: StreamSessionSnapshot { get }
+     var streamStats: StreamStats { get }
+-    var streamStatePublisher: AnyPublisher<StreamState, Never> { get }
++    var sessionSnapshotPublisher: AnyPublisher<StreamSessionSnapshot, Never> { get }
+     var streamStatsPublisher: AnyPublisher<StreamStats, Never> { get }
+ 
+     func startStream(profileId: String)
