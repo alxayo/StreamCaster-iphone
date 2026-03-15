@@ -1,0 +1,9 @@
+// Localizable.strings
+// StreamCaster
+//
+// Add user-facing strings here for localization.
+// Format: "key" = "value";
+//
+// Example:
+// "stream.start" = "Start Streaming";
+// "stream.stop"  = "Stop Streaming";

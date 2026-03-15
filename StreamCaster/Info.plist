@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- App display name shown under the icon on the Home Screen -->
+	<key>CFBundleDisplayName</key>
+	<string>StreamCaster</string>
+
+	<!-- Internal bundle name (usually matches the project name) -->
+	<key>CFBundleName</key>
+	<string>StreamCaster</string>
+
+	<!-- Unique identifier for this app on the App Store and device -->
+	<key>CFBundleIdentifier</key>
+	<string>com.port80.app</string>
+
+	<!-- Current version shown to users (e.g., "1.0") -->
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+
+	<!-- Internal build number, incremented with each build -->
+	<key>CFBundleVersion</key>
+	<string>1</string>
+
+	<!-- Tells the system this is an application (not a framework/plugin) -->
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+
+	<!-- Required: Xcode version plist format -->
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+
+	<!-- Minimum iOS version required to run this app -->
+	<key>MinimumOSVersion</key>
+	<string>15.0</string>
+
+	<!-- Use SwiftUI-based scene lifecycle (not the old UIKit storyboard approach) -->
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+	</dict>
+
+	<!-- ============================================================ -->
+	<!-- Privacy: These strings are shown to the user when the app     -->
+	<!-- requests permission. Apple requires them or the app crashes.  -->
+	<!-- ============================================================ -->
+
+	<!-- Camera permission prompt -->
+	<key>NSCameraUsageDescription</key>
+	<string>StreamCaster needs camera access to capture and stream live video.</string>
+
+	<!-- Microphone permission prompt -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>StreamCaster needs microphone access to capture and stream live audio.</string>
+
+	<!-- Photo library (save recordings) permission prompt -->
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>StreamCaster needs Photos access to save local recordings.</string>
+
+	<!-- Local network (RTMP servers) permission prompt -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>StreamCaster uses local network to connect to RTMP streaming servers.</string>
+
+	<!-- ============================================================ -->
+	<!-- Background Modes: allows the app to keep running in the       -->
+	<!-- background for specific tasks.                                -->
+	<!-- "audio" = keep audio capture/playback alive in the background -->
+	<!-- ============================================================ -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
+</dict>
+</plist>
