@@ -14,9 +14,54 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     // MARK: - Orientation Lock
 
     /// Controls which orientations the app currently supports.
-    /// Change this value at runtime to lock/unlock rotation.
-    /// Default: allow all orientations.
-    var orientationLock: UIInterfaceOrientationMask = .all
+    /// When set to `.all`, the device rotates freely.
+    /// When set to `.landscape` or `.portrait`, rotation is locked.
+    ///
+    /// iOS asks us for this value every time the device rotates,
+    /// so changing it immediately affects rotation behavior.
+    private(set) var orientationLock: UIInterfaceOrientationMask = .all
+
+    /// Lock the screen to a specific orientation.
+    ///
+    /// Call this when a stream starts so the video doesn't rotate
+    /// mid-stream (rotating would require restarting the encoder
+    /// and would cause a brief interruption).
+    ///
+    /// - Parameter mask: The allowed orientations (e.g., `.landscape`
+    ///   or `.portrait`). Pass `.all` to allow free rotation.
+    func lockOrientation(_ mask: UIInterfaceOrientationMask) {
+        orientationLock = mask
+
+        // Tell iOS that supported orientations have changed.
+        // Without this call, iOS won't check again until the next
+        // physical rotation event — so the lock might not take
+        // effect immediately.
+        if #available(iOS 16.0, *) {
+            // iOS 16+ uses the new geometry-request API on the window scene.
+            guard let windowScene = UIApplication.shared
+                .connectedScenes
+                .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
+            else { return }
+
+            windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: mask))
+
+            // Also tell the root view controller to re-query its
+            // supported orientations.
+            windowScene.windows.first?.rootViewController?
+                .setNeedsUpdateOfSupportedInterfaceOrientations()
+        } else {
+            // On older iOS versions, calling setValue on the device
+            // triggers a re-evaluation of supported orientations.
+            UIViewController.attemptRotationToDeviceOrientation()
+        }
+    }
+
+    /// Unlock the screen so the user can rotate freely again.
+    ///
+    /// Call this when the stream fully stops (returns to idle).
+    func unlockOrientation() {
+        lockOrientation(.all)
+    }
 
     // MARK: - App Lifecycle
 
