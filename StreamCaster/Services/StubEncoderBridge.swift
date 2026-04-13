@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+import Combine
 import CoreMedia
 import UIKit
 
@@ -18,6 +19,12 @@ final class StubEncoderBridge: EncoderBridge {
 
     /// Tracks whether we're "connected" (always fake in this stub).
     private(set) var isConnected: Bool = false
+
+    /// Stub stats — never changes, always returns defaults.
+    @Published private(set) var latestStats = StreamStats()
+    var statsPublisher: AnyPublisher<StreamStats, Never> {
+        $latestStats.eraseToAnyPublisher()
+    }
 
     /// Which camera position we're pretending to use.
     private var cameraPosition: AVCaptureDevice.Position = .back

@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+import Combine
 import CoreMedia
 import UIKit
 
@@ -164,6 +165,12 @@ protocol EncoderBridge: AnyObject {
         latencyMs: Int,
         streamId: String?
     )
+
+    // MARK: Stats
+
+    /// Publishes live stream statistics (bitrate, fps, duration, etc.)
+    /// roughly once per second while streaming.
+    var statsPublisher: AnyPublisher<StreamStats, Never> { get }
 
     // MARK: Cleanup
 

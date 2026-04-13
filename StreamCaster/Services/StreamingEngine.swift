@@ -80,6 +80,11 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     /// previous connection (e.g., RTMP) doesn't leak into a new one (e.g., SRT).
     private var encoderBridge: EncoderBridge
 
+    /// Holds the subscription that forwards the encoder bridge's stats
+    /// to our `@Published streamStats`. Cancelled and re-created whenever
+    /// the bridge is swapped (e.g., switching RTMP → SRT).
+    private var statsCancellable: AnyCancellable?
+
     /// Weak reference to the currently attached preview view.
     /// We keep this so we can re-attach the preview when the encoder bridge
     /// is swapped (e.g., switching from RTMP to SRT triggers a new bridge).
@@ -190,6 +195,9 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
 
         self.encoderBridge = EncoderBridgeFactory.makeBridge(for: profile)
 
+        // Subscribe to the new bridge's stats so the HUD updates in real time.
+        bindBridgeStats()
+
         // Re-attach the preview view to the NEW bridge so the user sees
         // the live camera feed. Without this, the preview stays wired to
         // the old (now-discarded) bridge and the screen goes black.
@@ -294,6 +302,11 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         encoderBridge.detachCamera()
         encoderBridge.detachAudio()
         encoderBridge.disconnect()
+
+        // Stop forwarding stats and reset the display to defaults.
+        statsCancellable?.cancel()
+        statsCancellable = nil
+        streamStats = StreamStats()
 
         // Update state to .stopped with the given reason.
         let snapshot = await coordinator.stopSession(reason: reason)
@@ -619,6 +632,18 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         }
 
         return encoderBridge.isConnected
+    }
+
+    /// Subscribe to the current encoder bridge's stats publisher and forward
+    /// every update to our own `@Published streamStats`. This wires the
+    /// bridge's 1-second stat timer to the ViewModel → HUD display chain.
+    private func bindBridgeStats() {
+        statsCancellable?.cancel()
+        statsCancellable = encoderBridge.statsPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] stats in
+                self?.streamStats = stats
+            }
     }
 
     /// After stopping, wait a short time then reset to .idle.
