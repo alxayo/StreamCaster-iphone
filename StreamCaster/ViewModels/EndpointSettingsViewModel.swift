@@ -45,6 +45,12 @@ class EndpointSettingsViewModel: ObservableObject {
     /// A friendly name for this profile (e.g., "My Twitch Channel").
     @Published var profileName: String = ""
 
+    /// The video codec selected for this endpoint profile.
+    /// Defaults to H.264 for maximum compatibility.
+    /// H.265 and AV1 offer better compression but require Enhanced RTMP
+    /// server support. AV1 also needs an A17 Pro chip or later.
+    @Published var videoCodec: VideoCodec = .h264
+
     // ──────────────────────────────────────────────────────────
     // MARK: - Published Properties (Profile List)
     // ──────────────────────────────────────────────────────────
@@ -116,6 +122,8 @@ class EndpointSettingsViewModel: ObservableObject {
         let id = selectedProfileId ?? UUID().uuidString
 
         // Build the profile from the current form fields.
+        // The videoCodec is included so the user's codec choice is
+        // persisted alongside the rest of the endpoint configuration.
         let profile = EndpointProfile(
             id: id,
             name: profileName.isEmpty ? "Untitled" : profileName,
@@ -123,7 +131,8 @@ class EndpointSettingsViewModel: ObservableObject {
             streamKey: streamKey,
             username: username.isEmpty ? nil : username,
             password: password.isEmpty ? nil : password,
-            isDefault: profiles.first(where: { $0.id == id })?.isDefault ?? false
+            isDefault: profiles.first(where: { $0.id == id })?.isDefault ?? false,
+            videoCodec: videoCodec
         )
 
         do {
@@ -184,6 +193,8 @@ class EndpointSettingsViewModel: ObservableObject {
         streamKey = profile.streamKey
         username = profile.username ?? ""
         password = profile.password ?? ""
+        // Restore the video codec the user previously chose for this profile.
+        videoCodec = profile.videoCodec
     }
 
     /// Clear all form fields and deselect the current profile.
@@ -195,6 +206,8 @@ class EndpointSettingsViewModel: ObservableObject {
         streamKey = ""
         username = ""
         password = ""
+        // Reset video codec to H.264 — the safest default for new profiles.
+        videoCodec = .h264
         saveError = nil
         testConnectionResult = nil
         testResultIcon = nil
@@ -217,13 +230,15 @@ class EndpointSettingsViewModel: ObservableObject {
 
         // Build a temporary profile from the current form fields.
         // We don't need a real ID — this profile won't be saved.
+        // Include the videoCodec so the test can validate codec support.
         let profile = EndpointProfile(
             id: "test-\(UUID().uuidString)",
             name: "Connection Test",
             rtmpUrl: rtmpUrl,
             streamKey: streamKey,
             username: username.isEmpty ? nil : username,
-            password: password.isEmpty ? nil : password
+            password: password.isEmpty ? nil : password,
+            videoCodec: videoCodec
         )
 
         // Run the test in a background Task so the UI stays responsive.

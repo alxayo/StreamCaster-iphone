@@ -70,6 +70,78 @@ struct EndpointSettingsView: View {
             }
 
             // ──────────────────────────────────────────────
+            // MARK: - Video Codec Section
+            // ──────────────────────────────────────────────
+            // Lets the user pick which video codec to use for this endpoint.
+            // Each codec has a display name, subtitle, and optional badges
+            // that warn about compatibility requirements.
+            Section {
+                // Picker bound to the viewModel's videoCodec property.
+                // When the user picks a different codec, the form updates
+                // immediately thanks to SwiftUI's two-way binding.
+                Picker(selection: $viewModel.videoCodec) {
+                    // Loop through every codec case (H.264, H.265, AV1).
+                    ForEach(VideoCodec.allCases, id: \.self) { codec in
+                        HStack {
+                            // Left side: codec name and a short description
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(codec.displayName)
+                                Text(codec.subtitle)
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+
+                            Spacer()
+
+                            // Badge: "Enhanced RTMP" — shown for codecs that
+                            // need server-side Enhanced RTMP support (H.265, AV1).
+                            if codec.requiresEnhancedRTMP {
+                                Text("Enhanced RTMP")
+                                    .font(.caption2)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.orange.opacity(0.2))
+                                    .foregroundColor(.orange)
+                                    .cornerRadius(4)
+                            }
+
+                            // Badge: "Not Available" — shown when the device
+                            // lacks hardware encoding for this codec (e.g., AV1
+                            // on devices without an A17 Pro chip).
+                            if !codec.isHardwareEncodingAvailable {
+                                Text("Not Available")
+                                    .font(.caption2)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.red.opacity(0.2))
+                                    .foregroundColor(.red)
+                                    .cornerRadius(4)
+                            }
+                        }
+                        // Tag each row so the Picker knows which codec it represents.
+                        .tag(codec)
+                        // Dim and disable codecs that aren't available on this device.
+                        // This prevents the user from selecting an unsupported codec.
+                        .disabled(!codec.isHardwareEncodingAvailable)
+                        .opacity(codec.isHardwareEncodingAvailable ? 1.0 : 0.5)
+                    }
+                } label: {
+                    Text("Video Codec")
+                }
+            } header: {
+                Text("Video Codec")
+            } footer: {
+                // Show a context-sensitive footer:
+                // - Warning if the selected codec needs Enhanced RTMP
+                // - Generic recommendation otherwise
+                if viewModel.videoCodec.requiresEnhancedRTMP {
+                    Text("⚠️ \(viewModel.videoCodec.displayName) requires Enhanced RTMP server support. Not all streaming platforms support this codec.")
+                } else {
+                    Text("H.264 is recommended for maximum compatibility with all streaming platforms.")
+                }
+            }
+
+            // ──────────────────────────────────────────────
             // MARK: - Transport Security Warning
             // ──────────────────────────────────────────────
             if viewModel.showSecurityWarning {

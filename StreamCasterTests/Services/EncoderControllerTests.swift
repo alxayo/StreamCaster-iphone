@@ -115,6 +115,11 @@ private final class MockEncoderBridge: EncoderBridge, @unchecked Sendable {
     // MARK: Encoder Configuration (recording implementations)
     // -------------------------------------------------------------------------
 
+    /// Records which codec was configured. No-op for mock purposes.
+    func configureCodec(_ codec: VideoCodec) {
+        callLog.append("configureCodec")
+    }
+
     /// Records the bitrate change. This is the "instant" path that doesn't
     /// require an encoder restart.
     func setBitrate(_ kbps: Int) async throws {

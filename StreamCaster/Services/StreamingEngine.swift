@@ -161,7 +161,12 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         let connectingSnapshot = await coordinator.startSession(config: config)
         applySnapshot(connectingSnapshot)
 
-        // Step 4: Configure the encoder with the desired video settings.
+        // Step 4a: Configure the video codec from the endpoint profile.
+        // This must happen BEFORE setVideoSettings / connect so the encoder
+        // creates the correct VideoToolbox compression session (H.264 vs HEVC).
+        encoderBridge.configureCodec(profile.videoCodec)
+
+        // Step 4b: Configure the encoder with the desired video settings.
         do {
             try await encoderBridge.setVideoSettings(
                 resolution: config.resolution,

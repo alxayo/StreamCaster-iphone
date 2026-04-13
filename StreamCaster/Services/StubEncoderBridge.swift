@@ -65,6 +65,11 @@ final class StubEncoderBridge: EncoderBridge {
 
     // MARK: - Encoder Configuration
 
+    /// Pretend to configure the video codec. Logs the selection but does nothing.
+    func configureCodec(_ codec: VideoCodec) {
+        print("[StubEncoderBridge] configureCodec(\(codec.displayName))")
+    }
+
     /// Pretend to change the video bitrate.
     func setBitrate(_ kbps: Int) async throws {
         print("[StubEncoderBridge] setBitrate(\(kbps) kbps)")

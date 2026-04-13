@@ -52,6 +52,17 @@ protocol EncoderBridge: AnyObject {
 
     // MARK: Encoder Configuration
 
+    /// Configure which video codec the encoder should use.
+    ///
+    /// This **must** be called before `connect(url:streamKey:)` because the
+    /// underlying encoder (VideoToolbox) needs to know the codec type when
+    /// creating the compression session.
+    ///
+    /// - Parameter codec: The desired video codec (.h264, .h265, or .av1).
+    ///   If the codec isn't available on this device (e.g., AV1 on older
+    ///   hardware), the implementation should fall back to H.264.
+    func configureCodec(_ codec: VideoCodec)
+
     /// Change the video bitrate on the fly (used by Adaptive Bitrate).
     /// - Parameter kbps: New bitrate in kilobits per second.
     /// - Throws: If the encoder rejects the new value.

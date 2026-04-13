@@ -4,6 +4,7 @@ import CoreMedia
 import Combine
 import CoreGraphics
 import UIKit
+import VideoToolbox
 
 #if canImport(HaishinKit)
 import HaishinKit
@@ -22,6 +23,10 @@ final class HaishinKitEncoderBridge: EncoderBridge {
     private var configuredFps = 30
     private var configuredVideoBitrateKbps = 2500
     private var configuredAudioBitrateKbps = 128
+
+    /// The video codec currently configured for encoding.
+    /// Defaults to H.264 for maximum compatibility with all RTMP servers.
+    private var configuredCodec: VideoCodec = .h264
 
     @Published private(set) var isConnected = false
 
@@ -44,6 +49,61 @@ final class HaishinKitEncoderBridge: EncoderBridge {
         Task {
             await mixer.addOutput(stream)
         }
+        #endif
+    }
+
+    /// Configure the video codec for the encoder.
+    ///
+    /// HaishinKit selects the codec via the `profileLevel` property on
+    /// `VideoCodecSettings`.  Setting an HEVC profile level tells
+    /// VideoToolbox to create an HEVC (H.265) compression session instead
+    /// of an H.264 session.
+    ///
+    /// **Must be called before `connect(url:streamKey:)`** so the encoder
+    /// session is created with the correct codec.
+    ///
+    /// - Parameter codec: The desired video codec (.h264, .h265, or .av1).
+    func configureCodec(_ codec: VideoCodec) {
+        configuredCodec = codec
+
+        #if canImport(HaishinKit) && canImport(RTMPHaishinKit)
+        Task {
+            // Read the current settings so we preserve resolution/bitrate/etc.
+            var settings = await stream.videoSettings
+
+            switch codec {
+            case .h264:
+                // H.264 — universal support.
+                // Use Baseline 3.1 which is the HaishinKit default.
+                settings.profileLevel = kVTProfileLevel_H264_Baseline_3_1 as String
+
+            case .h265:
+                // H.265 (HEVC) — ~40% better compression than H.264.
+                // Setting an HEVC profile level automatically switches the
+                // internal `format` to `.hevc`, which tells VideoToolbox to
+                // use kCMVideoCodecType_HEVC.
+                // Requires Enhanced RTMP server support.
+                settings.profileLevel = kVTProfileLevel_HEVC_Main_AutoLevel as String
+
+            case .av1:
+                // AV1 — best compression, but HaishinKit 2.x does not
+                // expose an AV1 format in VideoCodecSettings.Format.
+                // We fall back to H.264 and log a warning.
+                //
+                // TODO: When HaishinKit adds AV1 support, update this
+                // branch to use the appropriate profile level / format.
+                if codec.isHardwareEncodingAvailable {
+                    print("[HaishinKitEncoderBridge] AV1 requested but HaishinKit does not support AV1 yet. Falling back to H.264.")
+                } else {
+                    print("[HaishinKitEncoderBridge] AV1 hardware encoding not available on this device. Falling back to H.264.")
+                }
+                settings.profileLevel = kVTProfileLevel_H264_Baseline_3_1 as String
+            }
+
+            try? await stream.setVideoSettings(settings)
+        }
+        #else
+        fallback.configureCodec(codec)
         #endif
     }
 
