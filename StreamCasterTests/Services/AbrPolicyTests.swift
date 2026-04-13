@@ -231,6 +231,9 @@ private final class StubEncoderBridgeForTests: EncoderBridge {
 
     // MARK: - Encoder Configuration (no-ops)
 
+    /// No-op: codec selection doesn't matter for ABR tests.
+    func configureCodec(_ codec: VideoCodec) {}
+
     /// No-op: pretends to change the bitrate successfully.
     func setBitrate(_ kbps: Int) async throws {}
 
