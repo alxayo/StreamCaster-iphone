@@ -43,6 +43,11 @@ struct StreamView: View {
     /// Whether the endpoint/RTMP URL setup sheet is currently shown.
     @State private var showEndpointSetup = false
 
+    /// Detects device orientation.
+    /// - `.regular` in portrait → buttons need a two-row layout to fit.
+    /// - `.compact` in landscape → single row has enough horizontal space.
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
     // MARK: - Body
 
     var body: some View {
@@ -114,10 +119,12 @@ struct StreamView: View {
             VStack {
                 // Top: HUD bar showing stats
                 StreamHudView(viewModel: viewModel)
+                    .padding(.horizontal)
 
                 if let errorMessage = viewModel.errorMessage {
                     errorBanner(message: errorMessage)
                         .padding(.top, 8)
+                        .padding(.horizontal)
                 }
 
                 Spacer()
@@ -125,7 +132,7 @@ struct StreamView: View {
                 // Bottom: Control buttons (mute, start/stop, camera switch)
                 controlBar
             }
-            .padding()
+            .padding(.vertical)
         }
         // Keep the status bar light (white) since the background is dark
         .preferredColorScheme(.dark)
@@ -158,41 +165,66 @@ struct StreamView: View {
 
     // MARK: - Control Bar
 
-    /// The bottom row of control buttons.
+    /// The bottom row(s) of control buttons.
     ///
-    /// LAYOUT:
-    /// [Settings]  [Mute]  [● START/STOP]  [Record]  [Switch Camera]
+    /// PORTRAIT (two rows — buttons would overflow in a single row):
+    /// ┌──────────────────────────────────────────────────┐
+    /// │  [Settings] [Mute] [Record] [Camera] [Minimal]   │
+    /// │              [●●● START/STOP ●●●]                │
+    /// └──────────────────────────────────────────────────┘
     ///
-    /// The start/stop button is bigger and centered to make it
-    /// the most prominent control.
+    /// LANDSCAPE (single row — plenty of horizontal space):
+    /// ┌──────────────────────────────────────────────────────────────┐
+    /// │ [Settings] [Mute]   [● START/STOP]   [Record] [Camera] [M] │
+    /// └──────────────────────────────────────────────────────────────┘
     private var controlBar: some View {
-        HStack(spacing: 24) {
-            // Settings gear — opens the settings sheet
-            settingsButton
+        Group {
+            if verticalSizeClass == .regular {
+                // ── Portrait: two-row layout ──
+                // Secondary buttons on top, big start/stop below.
+                VStack(spacing: 12) {
+                    HStack {
+                        settingsButton
+                        Spacer(minLength: 0)
+                        muteButton
+                        Spacer(minLength: 0)
+                        recordButton
+                        Spacer(minLength: 0)
+                        cameraSwitchButton
+                        Spacer(minLength: 0)
+                        minimalModeButton
+                    }
 
-            // Mute toggle — silences the microphone
-            muteButton
-
-            Spacer()
-
-            // Big start/stop button — the main action
-            startStopButton
-
-            Spacer()
-
-            // Record toggle — saves a local MP4 copy of the stream
-            recordButton
-
-            // Switch between front and back camera
-            cameraSwitchButton
-
-            // Toggle minimal mode (hides camera preview to save power)
-            minimalModeButton
+                    startStopButton
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 12)
+                .background(.ultraThinMaterial.opacity(0.6))
+                .cornerRadius(16)
+                .padding(.horizontal, 12)
+            } else {
+                // ── Landscape: single-row layout ──
+                // All buttons in one row with flexible spacing between each.
+                HStack {
+                    settingsButton
+                    Spacer(minLength: 0)
+                    muteButton
+                    Spacer(minLength: 0)
+                    startStopButton
+                    Spacer(minLength: 0)
+                    recordButton
+                    Spacer(minLength: 0)
+                    cameraSwitchButton
+                    Spacer(minLength: 0)
+                    minimalModeButton
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 12)
+                .background(.ultraThinMaterial.opacity(0.6))
+                .cornerRadius(16)
+                .padding(.horizontal, 12)
+            }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 12)
-        .background(.ultraThinMaterial.opacity(0.6))
-        .cornerRadius(16)
     }
 
     // MARK: - Start / Stop Button
@@ -336,14 +368,14 @@ struct StreamView: View {
             viewModel.toggleMinimalMode()
         }) {
             Image(systemName: viewModel.isMinimalMode ? "moon.fill" : "moon")
-                .font(.title2)
+                .font(.system(size: 20))
                 .foregroundColor(.white)
-                .padding(12)
+                .frame(width: 44, height: 44)
                 .background(
                     Circle()
                         .fill(viewModel.isMinimalMode
                             ? Color.blue.opacity(0.6)
-                            : Color.black.opacity(0.4))
+                            : Color.white.opacity(0.15))
                 )
         }
     }
