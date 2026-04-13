@@ -32,7 +32,7 @@ final class StubEncoderBridge: EncoderBridge {
     // MARK: - Camera
 
     /// Pretend to attach a camera. Just logs the action.
-    func attachCamera(device: AVCaptureDevice?) {
+    func attachCamera(device: AVCaptureDevice?) async {
         let name = device?.localizedName ?? "nil"
         print("[StubEncoderBridge] attachCamera(\(name))")
     }

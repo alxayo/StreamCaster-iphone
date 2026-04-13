@@ -25,7 +25,7 @@ protocol EncoderBridge: AnyObject {
 
     /// Start capturing video from the specified camera device.
     /// - Parameter device: The `AVCaptureDevice` to use, or `nil` to detach.
-    func attachCamera(device: AVCaptureDevice?)
+    func attachCamera(device: AVCaptureDevice?) async
 
     /// Stop video capture and release the camera hardware.
     func detachCamera()

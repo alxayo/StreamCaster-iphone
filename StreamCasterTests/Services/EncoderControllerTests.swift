@@ -73,7 +73,7 @@ private final class MockEncoderBridge: EncoderBridge, @unchecked Sendable {
     // MARK: Camera (no-op implementations)
     // -------------------------------------------------------------------------
 
-    func attachCamera(device: AVCaptureDevice?) {
+    func attachCamera(device: AVCaptureDevice?) async {
         attachCameraCallCount += 1
         lastCameraDevice = device
         callLog.append("attachCamera")

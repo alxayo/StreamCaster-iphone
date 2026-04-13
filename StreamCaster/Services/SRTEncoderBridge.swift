@@ -246,17 +246,15 @@ final class SRTEncoderBridge: EncoderBridge {
     ///
     /// - Parameter position: `.front` for the selfie camera, `.back` for
     ///   the rear camera.
-    func attachCamera(device: AVCaptureDevice?) {
+    func attachCamera(device: AVCaptureDevice?) async {
         #if canImport(HaishinKit) && canImport(SRTHaishinKit)
-        Task {
-            do {
-                try await mixer.attachVideo(device)
-            } catch {
-                print("[SRTEncoderBridge] Failed to attach camera: \(error)")
-            }
+        do {
+            try await mixer.attachVideo(device)
+        } catch {
+            print("[SRTEncoderBridge] Failed to attach camera: \(error)")
         }
         #else
-        fallback.attachCamera(device: device)
+        await fallback.attachCamera(device: device)
         #endif
     }
 

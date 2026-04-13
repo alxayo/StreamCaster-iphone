@@ -207,7 +207,7 @@ private final class StubEncoderBridgeForTests: EncoderBridge {
     // MARK: - Camera (no-ops)
 
     /// No-op: we don't need a real camera in tests.
-    func attachCamera(device: AVCaptureDevice?) {}
+    func attachCamera(device: AVCaptureDevice?) async {}
 
     func setVideoStabilization(_ mode: AVCaptureVideoStabilizationMode) {}
 

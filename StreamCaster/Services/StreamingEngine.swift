@@ -253,7 +253,7 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         // Step 5: Attach camera and audio.
         if config.videoEnabled {
             let device = resolveCurrentCamera()
-            attachCameraWithStabilization(device)
+            await attachCameraWithStabilization(device)
         }
         if config.audioEnabled {
             encoderBridge.attachAudio()
@@ -382,7 +382,7 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
             let next = nextCameraInCycle(after: current)
 
             encoderBridge.detachCamera()
-            attachCameraWithStabilization(next)
+            await attachCameraWithStabilization(next)
 
             currentCameraDevice = next
             settingsRepository.setDefaultCameraDevice(next)
@@ -397,7 +397,7 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
             guard snapshot.media.videoActive || shouldManageIdlePreviewCamera else { return }
 
             encoderBridge.detachCamera()
-            attachCameraWithStabilization(device)
+            await attachCameraWithStabilization(device)
 
             currentCameraDevice = device
             settingsRepository.setDefaultCameraDevice(device)
@@ -425,7 +425,7 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
             // Tell the encoder bridge to attach/detach hardware accordingly.
             if videoEnabled {
                 let device = resolveCurrentCamera()
-                attachCameraWithStabilization(device)
+                await attachCameraWithStabilization(device)
             } else {
                 encoderBridge.detachCamera()
             }
@@ -540,7 +540,9 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         // Show a live preview even before streaming starts.
         if shouldManageIdlePreviewCamera {
             let device = resolveCurrentCamera()
-            attachCameraWithStabilization(device)
+            Task {
+                await attachCameraWithStabilization(device)
+            }
         }
     }
 
@@ -624,8 +626,8 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     private var orientationObserver: NSObjectProtocol?
 
     /// Attach a camera and apply the user's stabilization preference.
-    private func attachCameraWithStabilization(_ device: CameraDevice) {
-        encoderBridge.attachCamera(device: device.avCaptureDevice())
+    private func attachCameraWithStabilization(_ device: CameraDevice) async {
+        await encoderBridge.attachCamera(device: device.avCaptureDevice())
         let stabMode = settingsRepository.getVideoStabilizationMode()
         if stabMode != .off {
             encoderBridge.setVideoStabilization(stabMode)

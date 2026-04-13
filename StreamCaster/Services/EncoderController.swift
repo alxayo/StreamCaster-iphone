@@ -347,7 +347,7 @@ actor EncoderController {
         )
 
         // Step 4: Reattach camera with the current camera position
-        encoderBridge.attachCamera(device: cameraDevice?.avCaptureDevice())
+        await encoderBridge.attachCamera(device: cameraDevice?.avCaptureDevice())
 
         // Step 5: Request a keyframe (IDR frame) so new viewers can decode
         await encoderBridge.requestKeyFrame()
