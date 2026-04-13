@@ -1,0 +1,134 @@
+# ============================================================
+# StreamCaster iOS — Continuous Integration
+# ============================================================
+# This workflow builds and tests the iOS app on every push
+# and pull request to the main branch. It ensures code compiles
+# cleanly and all unit tests pass before merging.
+#
+# Equivalent to the Android app's GitHub Actions CI pipeline.
+# ============================================================
+#
+# How it works:
+#   1. Checks out the repo
+#   2. Selects the correct Xcode version on the runner
+#   3. Installs XcodeGen (generates .xcodeproj from project.yml)
+#   4. Resolves Swift Package Manager dependencies
+#   5. Builds the app for the iOS Simulator (no signing needed)
+#   6. Runs the full unit-test suite
+#
+# The runner is macos-15, which ships with Xcode 16.x and the
+# iOS 18 Simulator runtime pre-installed.
+# ============================================================
+
+name: iOS CI
+
+# ── Trigger conditions ──
+# Run on pushes to main and on any pull request targeting main.
+# This catches both direct commits and PR-based workflows.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# ── Concurrency control ──
+# If a new commit is pushed while CI is still running for the
+# same branch or PR, cancel the older run to save CI minutes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    # macos-15 gives us Apple Silicon runners with Xcode 16.x
+    # pre-installed. These runners include iOS Simulator runtimes
+    # so we don't need to install them separately.
+    runs-on: macos-15
+
+    steps:
+      # ── Step 1: Check out the repository ──
+      # actions/checkout@v4 clones the repo into the runner's
+      # workspace so all subsequent steps can access the source.
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── Step 2: Select the correct Xcode version ──
+      # macOS runners ship with multiple Xcode versions.
+      # We pin to Xcode 16.2 for reproducible builds and
+      # access to Swift 5.x / iOS 18 SDK.
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+
+      # ── Step 3: Install XcodeGen ──
+      # XcodeGen reads project.yml and generates the
+      # StreamCaster.xcodeproj file. This keeps CI in sync
+      # with the declarative project definition and avoids
+      # committing stale .xcodeproj changes.
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      # ── Step 4: Generate the Xcode project ──
+      # project.yml is the single source of truth for targets,
+      # schemes, SPM dependencies, and build settings.
+      # Generating fresh here guarantees CI always uses the
+      # latest configuration.
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      # ── Step 5: Resolve Swift Package Manager dependencies ──
+      # Downloads and checks out all SPM packages declared in
+      # project.yml (HaishinKit, KSCrash, etc.).
+      # -clonedSourcePackagesDirPath pins the cache location so
+      # Xcode doesn't scatter packages across DerivedData.
+      - name: Resolve SPM dependencies
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -scheme StreamCaster \
+            -clonedSourcePackagesDirPath .spm-cache
+
+      # ── Step 6: Build the app ──
+      # Compile for the iOS Simulator — no Apple Developer
+      # certificate or provisioning profile required.
+      #
+      # Key flags:
+      #   -sdk iphonesimulator   → target the Simulator SDK
+      #   -destination ...       → pick a specific Simulator device
+      #   CODE_SIGNING_ALLOWED=NO → skip code signing entirely
+      #   -skipPackagePluginValidation → allow SPM build plugins
+      #   xcpretty              → format xcodebuild's verbose output
+      #
+      # "|| true" after xcpretty prevents a broken-pipe exit code
+      # from failing the step; the real exit code comes from
+      # xcodebuild via PIPESTATUS (xcpretty can exit non-zero
+      # when the pipe closes).
+      - name: Build
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -scheme StreamCaster \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -clonedSourcePackagesDirPath .spm-cache \
+            -skipPackagePluginValidation \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty --color
+
+      # ── Step 7: Run unit tests ──
+      # Executes every test in the StreamCasterTests target.
+      # The test host is the StreamCaster.app built in Step 6,
+      # running inside the iPhone 16 Simulator.
+      #
+      # If any test fails, xcodebuild returns a non-zero exit
+      # code and the CI job is marked as failed.
+      - name: Test
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -scheme StreamCaster \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -clonedSourcePackagesDirPath .spm-cache \
+            -skipPackagePluginValidation \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty --color

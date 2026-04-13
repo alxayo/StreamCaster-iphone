@@ -1,5 +1,7 @@
 # StreamCaster iOS
 
+![iOS CI](https://github.com/alxayo/StreamCaster-iphone/actions/workflows/ci.yml/badge.svg)
+
 StreamCaster is an iOS live streaming app built with SwiftUI.
 It supports RTMP and RTMPS ingest endpoints, local preview, and basic stream health/state reporting.
 
@@ -211,6 +213,24 @@ Select the codec per-endpoint in the Endpoint Settings screen.
 | RTMP | ✅ Supported | Via HaishinKit |
 | RTMPS | ✅ Supported | Via HaishinKit + system TLS |
 | SRT | 🔬 Planned | Feasibility spike complete, implementation pending |
+
+## Continuous Integration
+
+The project uses GitHub Actions for CI. Every push and pull request to `main` triggers:
+1. XcodeGen project generation
+2. SPM dependency resolution
+3. Full build (iOS Simulator)
+4. Unit test suite execution
+
+### Running Tests Locally
+
+```bash
+xcodegen generate
+xcodebuild test \
+  -scheme StreamCaster \
+  -sdk iphonesimulator \
+  -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest'
+```
 
 ## Development Notes
 
