@@ -43,6 +43,9 @@ struct StreamView: View {
     /// Whether the endpoint/RTMP URL setup sheet is currently shown.
     @State private var showEndpointSetup = false
 
+    /// Guards against accidental "Stop" taps when recording is active.
+    @State private var showStopConfirmation = false
+
     /// Detects device orientation.
     /// - `.regular` in portrait → buttons need a two-row layout to fit.
     /// - `.compact` in landscape → single row has enough horizontal space.
@@ -188,8 +191,6 @@ struct StreamView: View {
                         Spacer(minLength: 0)
                         muteButton
                         Spacer(minLength: 0)
-                        recordButton
-                        Spacer(minLength: 0)
                         cameraSwitchButton
                         Spacer(minLength: 0)
                         minimalModeButton
@@ -212,8 +213,6 @@ struct StreamView: View {
                     Spacer(minLength: 0)
                     startStopButton
                     Spacer(minLength: 0)
-                    recordButton
-                    Spacer(minLength: 0)
                     cameraSwitchButton
                     Spacer(minLength: 0)
                     minimalModeButton
@@ -231,57 +230,136 @@ struct StreamView: View {
 
     /// A big circular button that starts or stops the stream.
     ///
-    /// - When idle: shows a red record icon → tapping starts the stream
-    /// - When streaming: shows a white stop icon → tapping stops the stream
-    /// - When connecting: disabled and shows a spinner
+    /// - Tap when idle → start streaming
+    /// - Tap when live → stop streaming (confirmation if recording)
+    /// - Long-press → context menu with recording options
     private var startStopButton: some View {
         Button {
-            if viewModel.isStreaming || viewModel.isConnecting || viewModel.isReconnecting {
-                // Stop the stream if it's currently live or connecting
-                viewModel.stopStream()
-            } else {
-                // Start the stream (using a default profile ID for now)
+            let transport = viewModel.sessionSnapshot.transport
+            switch transport {
+            case .idle, .stopped:
                 viewModel.startStream(profileId: "default")
+            case .live, .connecting, .reconnecting:
+                if viewModel.isRecording {
+                    showStopConfirmation = true
+                } else {
+                    viewModel.stopStream()
+                }
+            case .stopping:
+                break
             }
         } label: {
             ZStack {
-                // Outer circle background
+                // Pulsing ring — only when truly live.
+                if viewModel.isStreaming {
+                    Circle()
+                        .stroke(Color.red.opacity(0.4), lineWidth: 2)
+                        .frame(width: 76, height: 76)
+                        .modifier(PulseModifier())
+                }
+
                 Circle()
                     .fill(startStopButtonColor)
                     .frame(width: 64, height: 64)
 
-                // Icon: record circle or stop icon
                 if viewModel.isConnecting {
-                    // Show a spinner while connecting
                     ProgressView()
                         .tint(.white)
                 } else if viewModel.isStreaming || viewModel.isReconnecting {
-                    // Show stop icon when streaming
                     Image(systemName: "stop.circle.fill")
                         .font(.system(size: 30))
                         .foregroundColor(.white)
                 } else {
-                    // Show record icon when idle
                     Image(systemName: "record.circle")
                         .font(.system(size: 30))
                         .foregroundColor(.white)
                 }
             }
         }
-        // Disable the button while the stream is stopping
         .disabled(viewModel.sessionSnapshot.transport == .stopping)
+        .contextMenu { streamContextMenu }
+        .confirmationDialog(
+            "Stop Stream",
+            isPresented: $showStopConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Stop Stream & Recording", role: .destructive) {
+                viewModel.stopStream()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Recording is in progress. Stopping the stream will also stop recording.")
+        }
+        .accessibilityLabel(viewModel.isStreaming ? "Stop stream" : "Start stream")
+        .accessibilityHint("Long press for recording options")
+    }
+
+    /// Context menu items derived from the current transport and recording state.
+    @ViewBuilder
+    private var streamContextMenu: some View {
+        let transport = viewModel.sessionSnapshot.transport
+
+        switch transport {
+        case .idle, .stopped:
+            Button {
+                viewModel.startStream(profileId: "default")
+            } label: {
+                Label("Go Live", systemImage: "dot.radiowaves.left.and.right")
+            }
+
+            Button {
+                viewModel.startStreamWithRecording(profileId: "default")
+            } label: {
+                Label("Go Live + Record", systemImage: "record.circle")
+            }
+
+        case .live:
+            if viewModel.isRecording {
+                Button {
+                    viewModel.toggleRecording()
+                } label: {
+                    Label("Stop Recording", systemImage: "stop.circle")
+                }
+            } else {
+                Button {
+                    viewModel.toggleRecording()
+                } label: {
+                    Label("Start Recording", systemImage: "record.circle")
+                }
+            }
+
+            Button(role: .destructive) {
+                viewModel.stopStream()
+            } label: {
+                Label("Stop Stream", systemImage: "xmark.circle")
+            }
+
+        case .connecting:
+            Button(role: .destructive) {
+                viewModel.stopStream()
+            } label: {
+                Label("Cancel Connection", systemImage: "xmark.circle")
+            }
+
+        case .reconnecting:
+            Button(role: .destructive) {
+                viewModel.stopStream()
+            } label: {
+                Label("Stop Stream", systemImage: "xmark.circle")
+            }
+
+        case .stopping:
+            EmptyView()
+        }
     }
 
     /// Pick the right background color for the start/stop button.
     private var startStopButtonColor: Color {
         if viewModel.isStreaming {
-            // Brand red (#E53935) when live
             return Color(red: 229 / 255, green: 57 / 255, blue: 53 / 255)
         } else if viewModel.isConnecting || viewModel.isReconnecting {
-            // Orange while connecting/reconnecting
             return .orange
         } else {
-            // Brand red for the "ready to start" state
             return Color(red: 229 / 255, green: 57 / 255, blue: 53 / 255)
         }
     }
@@ -304,42 +382,6 @@ struct StreamView: View {
                         .fill(Color.white.opacity(0.15))
                 )
         }
-    }
-
-    // MARK: - Record Button
-
-    /// Toggles local MP4 recording on and off.
-    ///
-    /// - When NOT recording: shows a red circle icon (like a record button)
-    /// - When recording: shows a stop icon with a red background
-    ///
-    /// Recording saves a copy of the stream to the device's Documents
-    /// folder as an MP4 file. The same encoded frames being sent to the
-    /// server are written to disk, so there's minimal extra CPU usage.
-    private var recordButton: some View {
-        Button {
-            viewModel.toggleRecording()
-        } label: {
-            Image(systemName: viewModel.isRecording ? "stop.circle.fill" : "circle.fill")
-                .font(.system(size: 20))
-                .foregroundColor(.red)
-                .frame(width: 44, height: 44)
-                .background(
-                    Circle()
-                        .fill(viewModel.isRecording
-                            ? Color.red.opacity(0.3)
-                            : Color.white.opacity(0.15))
-                )
-        }
-        // Only allow recording while the stream is live.
-        // Recording without streaming could be added later but is
-        // out of scope for the initial implementation.
-        .disabled(!viewModel.isStreaming)
-        .opacity(viewModel.isStreaming ? 1.0 : 0.4)
-        // Help text explains why the button is dimmed when not streaming.
-        .help(viewModel.isStreaming ? "Stop recording" : "Start streaming first to record")
-        .accessibilityLabel(viewModel.isRecording ? "Stop recording" : "Record locally")
-        .accessibilityHint(viewModel.isStreaming ? "" : "Start streaming first to enable recording")
     }
 
     // MARK: - Camera Switch Button
@@ -406,6 +448,25 @@ struct StreamView: View {
             // settings from within this sheet.
             SettingsRootView()
         }
+    }
+}
+
+// MARK: - PulseModifier
+
+/// Animates a repeating scale pulse from 1.0 → 1.2 and back.
+/// Used on the stream button's outer ring to indicate a live broadcast.
+private struct PulseModifier: ViewModifier {
+    @State private var isPulsing = false
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(isPulsing ? 1.2 : 1.0)
+            .opacity(isPulsing ? 0.0 : 1.0)
+            .animation(
+                .easeInOut(duration: 1.2).repeatForever(autoreverses: false),
+                value: isPulsing
+            )
+            .onAppear { isPulsing = true }
     }
 }
 

@@ -79,6 +79,11 @@ final class StreamViewModel: ObservableObject {
     /// Useful for long streams or when the phone is stationary (e.g., on a tripod).
     @Published var isMinimalMode: Bool = false
 
+    /// When `true`, recording will start automatically once the stream
+    /// transitions to `.live`. Set by "Go Live + Record" in the context menu.
+    /// Cleared once recording actually starts (or if the stream fails).
+    private var pendingRecordOnStart: Bool = false
+
     // MARK: - Dependencies
 
     /// Reference to the streaming engine — the single source of truth
@@ -148,8 +153,16 @@ final class StreamViewModel: ObservableObject {
 
                 if case .stopped(let reason) = snapshot.transport {
                     self.errorMessage = self.message(for: reason)
+                    self.pendingRecordOnStart = false
                 } else if snapshot.transport == .live || snapshot.transport == .connecting {
                     self.errorMessage = nil
+                }
+
+                // Auto-start recording when the stream goes live and the
+                // user chose "Go Live + Record" from the context menu.
+                if snapshot.transport == .live && self.pendingRecordOnStart {
+                    self.pendingRecordOnStart = false
+                    Task { await self.engine.startRecording() }
                 }
             }
             .store(in: &cancellables)
@@ -196,6 +209,12 @@ final class StreamViewModel: ObservableObject {
         Task {
             try await engine.startStream(profileId: profileId)
         }
+    }
+
+    /// Start streaming and automatically begin local recording once live.
+    func startStreamWithRecording(profileId: String) {
+        pendingRecordOnStart = true
+        startStream(profileId: profileId)
     }
 
     /// Stop the current stream.
