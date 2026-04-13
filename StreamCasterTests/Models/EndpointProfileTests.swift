@@ -237,9 +237,13 @@ final class EndpointProfileTests: XCTestCase {
         XCTAssertNotNil(json)
 
         // Every stored property must appear as a key.
+        // Note: computed properties (like `detectedProtocol`) are NOT encoded.
         let expectedKeys: Set<String> = [
             "id", "name", "rtmpUrl", "streamKey",
             "username", "password", "isDefault",
+            "videoCodec",
+            "srtMode", "srtLatencyMs",
+            // srtPassphrase and srtStreamId are nil → omitted from JSON
         ]
         let actualKeys = Set(json?.keys ?? [String: Any]().keys)
         XCTAssertEqual(actualKeys, expectedKeys,

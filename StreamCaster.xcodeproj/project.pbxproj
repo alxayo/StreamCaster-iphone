@@ -13,6 +13,7 @@
 		14E3E4AB0D0F2F59493EE158 /* StreamViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F397F934CC629D4C1F893DDC /* StreamViewModelTests.swift */; };
 		161DFC4E218DA087562FECD9 /* AbrPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75C3726E33CC0525BF232F7F /* AbrPolicyTests.swift */; };
 		237D96DC4F9F87DFE96A3550 /* StreamConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34D5060AF7EBA60D9A1D7003 /* StreamConfigTests.swift */; };
+		23A4114BDEB65D52C2031EE8 /* Recording in Frameworks */ = {isa = PBXBuildFile; productRef = 00F1FB9C99095F4D0B4A1C9E /* Recording */; };
 		2B9A4E83318E99BFF1EB30A5 /* HaishinKitEncoderBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 410FC52E51C40ECF65632367 /* HaishinKitEncoderBridge.swift */; };
 		2C567A128FB9CB9A72E9AD02 /* NoOpOverlayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2825C7E29A4E2C8B5510689F /* NoOpOverlayManager.swift */; };
 		2D47AA12A4E5B00CD0F6B5F4 /* StreamCasterStartupSmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D677F20FDE88BD83E59BD942 /* StreamCasterStartupSmokeTests.swift */; };
@@ -27,6 +28,7 @@
 		4DEF2886E52AC43803CEB234 /* EndpointSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D75F536BDCA3B34ADBBB9AA8 /* EndpointSettingsView.swift */; };
 		5021284D1D6CD723638877AD /* SettingsRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B20D6B9E861804AEF3A278 /* SettingsRootView.swift */; };
 		546436CCC26346A1851346A6 /* ReconnectPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10A55DF2C4BC623F046A4129 /* ReconnectPolicyTests.swift */; };
+		551B51B7733B19BDE66FBD64 /* StreamProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BD1F34BD7BCFE4DE2CF3B19 /* StreamProtocol.swift */; };
 		553E32BEAA6C10B84F569E24 /* PermissionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CB954DC215A2DB8F42DE33 /* PermissionHandler.swift */; };
 		5B079A6F8101CE87B8251A7B /* EndpointProfileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF561C360493A90B2710FBD2 /* EndpointProfileTests.swift */; };
 		60A947861927D18C7290076F /* AVDeviceCapabilityQuery.swift in Sources */ = {isa = PBXBuildFile; fileRef = D37FF8FEAAF4C4A52FF612AC /* AVDeviceCapabilityQuery.swift */; };
@@ -78,7 +80,7 @@
 		E46A6A9216D449E2F9CE9D69 /* EncoderBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA83263409C45621184A1B55 /* EncoderBridge.swift */; };
 		ECC88D6842A68FEEB4409120 /* EndpointSettingsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6679E7767D500F0FFD5292B6 /* EndpointSettingsViewModelTests.swift */; };
 		F26327DFBE4A76699DD90CEC /* RTMPHaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0D6B43C65B33139570EFFB2E /* RTMPHaishinKit */; };
-		F4B1D99338597DD8824F081D /* Recording in Frameworks */ = {isa = PBXBuildFile; productRef = 00F1FB9C99095F4D0B4A1C9E /* Recording */; };
+		F4B1D99338597DD8824F081D /* SRTHaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = 035B2ACE1EB94A2FF5B91DB6 /* SRTHaishinKit */; };
 		FAA67BC3954ECAEDB10BAAC8 /* ConnectionManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9B5110095E37AFB2563FAD9 /* ConnectionManagerTests.swift */; };
 		FBC94CD17D939295ADCDBECE /* ThermalMonitorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E8AC8F7ECE36F0185EA5D32 /* ThermalMonitorTests.swift */; };
 		FDFE8A89F3B9A8B7FF53DD43 /* StreamCasterApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84E6C9CB4987EF535589EFA9 /* StreamCasterApp.swift */; };
@@ -100,6 +102,7 @@
 		03B49335D60DCD1FE3EF170C /* TransportSecurityValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportSecurityValidatorTests.swift; sourceTree = "<group>"; };
 		094E8E14046E5C62E1A8F019 /* ConnectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManager.swift; sourceTree = "<group>"; };
 		0A476A3EA608FAECAB88A41F /* StreamCaster.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = StreamCaster.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0BD1F34BD7BCFE4DE2CF3B19 /* StreamProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamProtocol.swift; sourceTree = "<group>"; };
 		0CCF64AEF65B6A704C0A87AE /* AbrLadderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AbrLadderTests.swift; sourceTree = "<group>"; };
 		0E8AC8F7ECE36F0185EA5D32 /* ThermalMonitorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThermalMonitorTests.swift; sourceTree = "<group>"; };
 		10A55DF2C4BC623F046A4129 /* ReconnectPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReconnectPolicyTests.swift; sourceTree = "<group>"; };
@@ -180,7 +183,8 @@
 			files = (
 				E40C505E4E43496EF781BF6C /* HaishinKit in Frameworks */,
 				F26327DFBE4A76699DD90CEC /* RTMPHaishinKit in Frameworks */,
-				F4B1D99338597DD8824F081D /* Recording in Frameworks */,
+				F4B1D99338597DD8824F081D /* SRTHaishinKit in Frameworks */,
+				23A4114BDEB65D52C2031EE8 /* Recording in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -434,6 +438,7 @@
 			children = (
 				83D242E24211C4047321786E /* EndpointProfile.swift */,
 				6181BD0F2CE93F54F0514F02 /* StreamConfig.swift */,
+				0BD1F34BD7BCFE4DE2CF3B19 /* StreamProtocol.swift */,
 				B495DF2EA234982E444E8606 /* StreamState.swift */,
 				4F2C0F8C7DF49F6A8D8A729A /* StreamStats.swift */,
 				8B989DCC477E01F70C9E3A15 /* VideoCodec.swift */,
@@ -488,6 +493,7 @@
 			packageProductDependencies = (
 				38D79AA9145073A6DF059C29 /* HaishinKit */,
 				0D6B43C65B33139570EFFB2E /* RTMPHaishinKit */,
+				035B2ACE1EB94A2FF5B91DB6 /* SRTHaishinKit */,
 				00F1FB9C99095F4D0B4A1C9E /* Recording */,
 			);
 			productName = StreamCaster;
@@ -574,6 +580,7 @@
 				FDFE8A89F3B9A8B7FF53DD43 /* StreamCasterApp.swift in Sources */,
 				7F569B6F70A0F709C9A95D0A /* StreamConfig.swift in Sources */,
 				8584C9F8D1EFE35F5F669464 /* StreamHudView.swift in Sources */,
+				551B51B7733B19BDE66FBD64 /* StreamProtocol.swift in Sources */,
 				7704EDB6D8E31174FF176E81 /* StreamState.swift in Sources */,
 				BCAC1EE5E858767F05F1B308 /* StreamStats.swift in Sources */,
 				A8EB63DC5D117A67040C2656 /* StreamView.swift in Sources */,
@@ -883,6 +890,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FBDD0AB833CB48AB5FC397C1 /* XCRemoteSwiftPackageReference "KSCrash" */;
 			productName = Recording;
+		};
+		035B2ACE1EB94A2FF5B91DB6 /* SRTHaishinKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F3929B96CE583A930E97DAF4 /* XCRemoteSwiftPackageReference "HaishinKit.swift" */;
+			productName = SRTHaishinKit;
 		};
 		0D6B43C65B33139570EFFB2E /* RTMPHaishinKit */ = {
 			isa = XCSwiftPackageProductDependency;

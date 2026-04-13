@@ -37,6 +37,8 @@ targets:
         product: HaishinKit
       - package: HaishinKit
         product: RTMPHaishinKit
+      - package: HaishinKit
+        product: SRTHaishinKit
       - package: KSCrash
         product: Recording
     settings:
