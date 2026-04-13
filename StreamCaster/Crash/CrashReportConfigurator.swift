@@ -76,12 +76,10 @@ struct CrashReportConfigurator {
         // works, just without automatic crash reporting.
         #if canImport(KSCrashRecording)
         let config = KSCrashConfiguration()
-        let install = KSCrashInstallation.sharedInstance()
-        try install.install(with: config)
+        try KSCrash.shared.install(with: config)
         #elseif canImport(Recording)
         let config = KSCrashConfiguration()
-        let install = KSCrashInstallation.sharedInstance()
-        try install.install(with: config)
+        try KSCrash.shared.install(with: config)
         #else
         // KSCrash module not available — log a warning so developers
         // know crash reporting is inactive. This can happen if the
