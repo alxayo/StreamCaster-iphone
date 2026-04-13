@@ -80,6 +80,13 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     /// previous connection (e.g., RTMP) doesn't leak into a new one (e.g., SRT).
     private var encoderBridge: EncoderBridge
 
+    /// Weak reference to the currently attached preview view.
+    /// We keep this so we can re-attach the preview when the encoder bridge
+    /// is swapped (e.g., switching from RTMP to SRT triggers a new bridge).
+    /// Without this, the preview would remain attached to the old bridge
+    /// and the user would see a black screen.
+    private weak var currentPreviewView: UIView?
+
     /// Repository for looking up RTMP endpoint profiles (server URL + stream key).
     private let profileRepository: EndpointProfileRepository
 
@@ -174,7 +181,24 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         // stream (e.g., an RTMP connection) doesn't interfere with a new one
         // (e.g., SRT). This also means switching endpoints between RTMP and
         // SRT "just works" — no need to manually clean up the old bridge.
+
+        // Detach preview from the old bridge before swapping.
+        // The old bridge's mixer/stream still holds a reference to the
+        // MTHKView, which would cause a black screen if not released.
+        if let oldBridge = encoderBridge as? HaishinKitEncoderBridge {
+            oldBridge.detachPreview()
+            oldBridge.detachCamera()
+        }
+
         self.encoderBridge = EncoderBridgeFactory.makeBridge(for: profile)
+
+        // Re-attach the preview view to the NEW bridge so the user sees
+        // the live camera feed. Without this, the preview stays wired to
+        // the old (now-discarded) bridge and the screen goes black.
+        if let previewView = currentPreviewView,
+           let newBridge = encoderBridge as? HaishinKitEncoderBridge {
+            newBridge.attachPreview(previewView)
+        }
 
         // Step 3: Transition to .connecting state.
         let connectingSnapshot = await coordinator.startSession(config: config)
@@ -459,6 +483,10 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
 
     /// Attach a UIView to display the live camera preview.
     func attachPreview(_ view: UIView) {
+        // Remember the preview view so we can re-attach it if the bridge
+        // is swapped later (e.g., when startStream creates a new bridge).
+        currentPreviewView = view
+
         let bridge = encoderBridge as? HaishinKitEncoderBridge
         bridge?.attachPreview(view)
 
@@ -470,6 +498,8 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
 
     /// Remove the camera preview from its parent view.
     func detachPreview() {
+        currentPreviewView = nil
+
         let bridge = encoderBridge as? HaishinKitEncoderBridge
         bridge?.detachPreview()
 
