@@ -204,6 +204,14 @@ StreamCaster supports three video codecs:
 
 Select the codec per-endpoint in the Endpoint Settings screen.
 
+## Protocol Support
+
+| Protocol | Status | Notes |
+|----------|--------|-------|
+| RTMP | ✅ Supported | Via HaishinKit |
+| RTMPS | ✅ Supported | Via HaishinKit + system TLS |
+| SRT | 🔬 Planned | Feasibility spike complete, implementation pending |
+
 ## Development Notes
 
 - This repo uses XcodeGen; avoid manual long-term edits to generated project settings.
