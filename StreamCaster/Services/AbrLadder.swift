@@ -89,29 +89,94 @@ struct AbrLadder {
 
     // MARK: - Ladder Builder
 
-    /// Standard streaming resolutions from highest to lowest,
-    /// paired with their recommended bitrates (in kbps).
-    /// These bitrate values produce good-looking video at each size.
-    private static let resolutionPresets: [(resolution: Resolution, recommendedKbps: Int)] = [
-        (Resolution(width: 1920, height: 1080), 4500),   // 1080p Full HD
-        (Resolution(width: 1280, height: 720),  2500),   // 720p  HD
-        (Resolution(width: 960,  height: 540),  1500),   // 540p  qHD
-        (Resolution(width: 854,  height: 480),  1000),   // 480p  SD
+    /// Standard streaming resolutions from highest to lowest.
+    /// These are the candidate step-down resolutions the ABR system considers.
+    /// Bitrates are NOT stored here — they come from `recommendedBitrate(for:codec:)`
+    /// so each codec gets its own optimized target.
+    private static let resolutionPresets: [Resolution] = [
+        Resolution(width: 1920, height: 1080),  // 1080p Full HD
+        Resolution(width: 1280, height: 720),   // 720p  HD
+        Resolution(width: 960,  height: 540),   // 540p  qHD
+        Resolution(width: 854,  height: 480),   // 480p  SD
     ]
 
     /// The lowest bitrate (in kbps) we'll include in the ladder.
     /// Anything below this produces unwatchable video.
     private static let minimumBitrateKbps = 200
 
-    /// Build a quality ladder based on the user's starting config
-    /// and the device's hardware tier.
+    /// Returns the recommended bitrate (kbps) for a given resolution and codec.
+    ///
+    /// WHY DIFFERENT CODECS NEED DIFFERENT BITRATES:
+    /// Modern codecs compress video more efficiently. At the same bitrate,
+    /// H.265 looks ~40% better than H.264, and AV1 looks ~50% better.
+    /// Flipping that around: to achieve the *same* visual quality,
+    ///   • H.265 needs ~35% LESS bitrate than H.264
+    ///   • AV1  needs ~45% LESS bitrate than H.264
+    /// This means we can save significant bandwidth on newer codecs
+    /// without any visible quality loss for the viewer.
+    ///
+    /// HOW IT WORKS:
+    /// We calculate the total pixel count (width × height) and pick the
+    /// matching bitrate tier. This handles non-standard resolutions gracefully
+    /// — e.g., 1600×900 falls in the "≥ 1280×720" bucket.
+    ///
+    /// These values match the Android app's AbrLadder.kt to keep
+    /// cross-platform behavior consistent.
+    ///
+    /// - Parameters:
+    ///   - resolution: The video resolution to get a bitrate for.
+    ///   - codec: The video codec being used (affects efficiency).
+    /// - Returns: Recommended bitrate in kilobits per second.
+    private static func recommendedBitrate(for resolution: Resolution, codec: VideoCodec) -> Int {
+        let pixels = resolution.width * resolution.height
+
+        switch codec {
+        case .h264:
+            // H.264 baseline bitrates (universal compatibility).
+            // These are the highest because H.264 is the least efficient codec.
+            if pixels >= 1920 * 1080 { return 4500 }  // 1080p
+            if pixels >= 1280 * 720  { return 2500 }  // 720p
+            if pixels >= 960 * 540   { return 1500 }  // 540p
+            if pixels >= 854 * 480   { return 1000 }  // 480p
+            return 500                                  // 360p and below
+
+        case .h265:
+            // H.265 (HEVC) needs ~35% less bitrate for equivalent quality.
+            // Example: 1080p drops from 4500 kbps (H.264) to 3000 kbps.
+            if pixels >= 1920 * 1080 { return 3000 }
+            if pixels >= 1280 * 720  { return 1700 }
+            if pixels >= 960 * 540   { return 1000 }
+            if pixels >= 854 * 480   { return 800 }
+            return 350
+
+        case .av1:
+            // AV1 needs ~45% less bitrate for equivalent quality.
+            // Example: 1080p drops from 4500 kbps (H.264) to 2500 kbps.
+            // Note: AV1 encoding requires A17 Pro chip (iPhone 15 Pro+).
+            if pixels >= 1920 * 1080 { return 2500 }
+            if pixels >= 1280 * 720  { return 1400 }
+            if pixels >= 960 * 540   { return 850 }
+            if pixels >= 854 * 480   { return 650 }
+            return 275
+        }
+    }
+
+    /// Build a quality ladder based on the user's starting config,
+    /// the device's hardware tier, and the selected video codec.
     ///
     /// HOW IT WORKS:
     /// 1. Start from the user's chosen resolution and bitrate.
     /// 2. At that resolution, add sub-steps at 75% and 50% bitrate
     ///    (these are instant changes — no encoder restart needed).
-    /// 3. Drop to the next lower resolution and repeat.
+    /// 3. Drop to the next lower resolution and repeat, using the
+    ///    codec-specific recommended bitrate for each resolution.
     /// 4. At the very bottom, add frame-rate reduction steps (last resort).
+    ///
+    /// WHY CODEC MATTERS:
+    /// Each codec has different compression efficiency. H.265 and AV1
+    /// achieve the same visual quality at lower bitrates than H.264.
+    /// By passing the codec, the ladder sets lower bitrate targets for
+    /// more efficient codecs — saving bandwidth without losing quality.
     ///
     /// On Tier 1 devices (older iPhones), we cap at 720p because
     /// their hardware can't sustain higher resolutions while streaming.
@@ -119,8 +184,14 @@ struct AbrLadder {
     /// - Parameters:
     ///   - startingConfig: The user's chosen stream settings.
     ///   - deviceTier: 1 = old/slow, 2 = mid-range, 3 = flagship.
+    ///   - codec: The video codec being used. Defaults to `.h264` for
+    ///     backward compatibility with callers that don't specify a codec.
     /// - Returns: A fully built `AbrLadder` ready to use.
-    static func buildLadder(startingConfig: StreamConfig, deviceTier: Int) -> AbrLadder {
+    static func buildLadder(
+        startingConfig: StreamConfig,
+        deviceTier: Int,
+        codec: VideoCodec = .h264
+    ) -> AbrLadder {
         var steps: [Step] = []
 
         // Figure out the maximum pixel count we'll allow.
@@ -131,7 +202,7 @@ struct AbrLadder {
 
         // Filter the preset list: only keep resolutions at or below our max.
         let availableResolutions = resolutionPresets.filter {
-            $0.resolution.width * $0.resolution.height <= maxPixels
+            $0.width * $0.height <= maxPixels
         }
 
         // Track the previous step's bitrate so each new step never
@@ -139,16 +210,19 @@ struct AbrLadder {
         // reduces (or maintains) the data we're sending.
         var previousBitrate = Int.max
 
-        for (index, entry) in availableResolutions.enumerated() {
+        for (index, resolution) in availableResolutions.enumerated() {
             // --- Determine the base bitrate for this resolution ---
+            // Use the codec-specific recommended bitrate so that more
+            // efficient codecs (H.265, AV1) get lower targets automatically.
             let baseBitrate: Int
             if index == 0 {
                 // First (highest) resolution: use the user's chosen bitrate
                 baseBitrate = min(startingConfig.videoBitrateKbps, previousBitrate)
             } else {
-                // Lower resolutions: use the recommended bitrate, but
-                // cap it so we never step UP in bandwidth
-                baseBitrate = min(entry.recommendedKbps, previousBitrate)
+                // Lower resolutions: use the codec-aware recommended bitrate,
+                // but cap it so we never step UP in bandwidth
+                let recommended = recommendedBitrate(for: resolution, codec: codec)
+                baseBitrate = min(recommended, previousBitrate)
             }
 
             // --- Determine the frame rate ---
@@ -171,7 +245,7 @@ struct AbrLadder {
                 guard bitrate >= minimumBitrateKbps else { continue }
 
                 steps.append(Step(
-                    resolution: entry.resolution,
+                    resolution: resolution,
                     fps: fps,
                     bitrateKbps: bitrate
                 ))

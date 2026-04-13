@@ -99,7 +99,8 @@ final class AbrPolicy: ObservableObject {
         self.isEnabled = startingConfig.abrEnabled
         self.ladder = AbrLadder.buildLadder(
             startingConfig: startingConfig,
-            deviceTier: deviceTier
+            deviceTier: deviceTier,
+            codec: startingConfig.videoCodec
         )
     }
 
@@ -214,7 +215,8 @@ final class AbrPolicy: ObservableObject {
     func reset(config: StreamConfig, deviceTier: Int) {
         ladder = AbrLadder.buildLadder(
             startingConfig: config,
-            deviceTier: deviceTier
+            deviceTier: deviceTier,
+            codec: config.videoCodec
         )
         isEnabled = config.abrEnabled
         resetCounters()
