@@ -105,10 +105,12 @@ final class AVDeviceCapabilityQuery: DeviceCapabilityQuery {
     }
 
     /// Returns the stabilization modes supported by the given camera device.
+    /// Always includes `.off` so the user can disable stabilization entirely
+    /// (cinematic modes add 100–300ms of preview latency).
     func supportedStabilizationModes(for camera: CameraDevice) -> [AVCaptureVideoStabilizationMode] {
-        guard let avDevice = camera.avCaptureDevice() else { return [] }
+        guard let avDevice = camera.avCaptureDevice() else { return [.off] }
 
-        let allModes: [AVCaptureVideoStabilizationMode] = [
+        let hardwareModes: [AVCaptureVideoStabilizationMode] = [
             .standard,
             .cinematic,
             .cinematicExtended
@@ -117,7 +119,8 @@ final class AVDeviceCapabilityQuery: DeviceCapabilityQuery {
         // Check the active format's supported modes.
         // If no active format yet, check the first available format.
         let format = avDevice.activeFormat
-        return allModes.filter { format.isVideoStabilizationModeSupported($0) }
+        let supported = hardwareModes.filter { format.isVideoStabilizationModeSupported($0) }
+        return [.off] + supported
     }
 
     /// Returns the standard streaming resolutions that a camera actually supports.

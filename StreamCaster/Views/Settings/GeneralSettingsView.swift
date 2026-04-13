@@ -48,7 +48,7 @@ struct GeneralSettingsView: View {
             } header: {
                 Text("Camera")
             } footer: {
-                Text("The camera that will be active when you start a new stream.")
+                Text("The camera that will be active when you start a new stream. Cinematic stabilization modes add noticeable preview latency.")
             }
 
             // ──────────────────────────────────────────────
