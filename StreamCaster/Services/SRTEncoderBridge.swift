@@ -593,6 +593,16 @@ final class SRTEncoderBridge: EncoderBridge {
         #endif
     }
 
+    // MARK: - Video Orientation
+
+    func setVideoOrientation(_ orientation: AVCaptureVideoOrientation) {
+        #if canImport(HaishinKit) && canImport(SRTHaishinKit)
+        Task {
+            await mixer.setVideoOrientation(orientation)
+        }
+        #endif
+    }
+
     // MARK: - Cleanup
 
     /// Release all resources: stop capture, close connections, free encoders.

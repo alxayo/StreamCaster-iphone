@@ -146,6 +146,14 @@ final class HaishinKitEncoderBridge: EncoderBridge {
         #endif
     }
 
+    func setVideoOrientation(_ orientation: AVCaptureVideoOrientation) {
+        #if canImport(HaishinKit) && canImport(RTMPHaishinKit)
+        Task {
+            await mixer.setVideoOrientation(orientation)
+        }
+        #endif
+    }
+
     func detachCamera() {
         #if canImport(HaishinKit) && canImport(RTMPHaishinKit)
         Task {

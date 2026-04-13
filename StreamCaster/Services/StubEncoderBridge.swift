@@ -129,6 +129,12 @@ final class StubEncoderBridge: EncoderBridge {
         return nil
     }
 
+    // MARK: - Video Orientation
+
+    func setVideoOrientation(_ orientation: AVCaptureVideoOrientation) {
+        print("[StubEncoderBridge] setVideoOrientation(\(orientation.rawValue))")
+    }
+
     // MARK: - Cleanup
 
     /// Release all resources (in the stub, just reset state and log).

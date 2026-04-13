@@ -19,6 +19,7 @@
 		2D47AA12A4E5B00CD0F6B5F4 /* StreamCasterStartupSmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D677F20FDE88BD83E59BD942 /* StreamCasterStartupSmokeTests.swift */; };
 		2DA53C99C51BCE47B6E563E3 /* AbrPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9C28426B38D2F11CB53C1D1 /* AbrPolicy.swift */; };
 		307735AF94D3AA78F1582721 /* StreamingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5FDA78F5EA51D8B64ED2E4C /* StreamingEngine.swift */; };
+		321CB15A96EB8C0616123F87 /* VideoOrientationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67804D3671AAB06C02D4DC5B /* VideoOrientationTests.swift */; };
 		356846D75404859DBAA37438 /* ThermalMonitorProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20A6A45BAB5711874C7868CB /* ThermalMonitorProtocol.swift */; };
 		3A44D355C7A0B577CBFC3EEA /* UserDefaultsSettingsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 915C54A4DCECF1A4A31F5BC5 /* UserDefaultsSettingsRepository.swift */; };
 		3B6CB0DB43ABFF6510A17BFE /* CredentialSanitizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6288CE7BC3798D7DC896C4B /* CredentialSanitizer.swift */; };
@@ -105,7 +106,7 @@
 		0309A18382A398A4AF607FA3 /* CredentialSanitizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialSanitizerTests.swift; sourceTree = "<group>"; };
 		03B49335D60DCD1FE3EF170C /* TransportSecurityValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportSecurityValidatorTests.swift; sourceTree = "<group>"; };
 		094E8E14046E5C62E1A8F019 /* ConnectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManager.swift; sourceTree = "<group>"; };
-		0A476A3EA608FAECAB88A41F /* StreamCaster.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StreamCaster.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0A476A3EA608FAECAB88A41F /* StreamCaster.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = StreamCaster.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0BD1F34BD7BCFE4DE2CF3B19 /* StreamProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamProtocol.swift; sourceTree = "<group>"; };
 		0CCF64AEF65B6A704C0A87AE /* AbrLadderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AbrLadderTests.swift; sourceTree = "<group>"; };
 		0E8AC8F7ECE36F0185EA5D32 /* ThermalMonitorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThermalMonitorTests.swift; sourceTree = "<group>"; };
@@ -135,6 +136,7 @@
 		6679E7767D500F0FFD5292B6 /* EndpointSettingsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndpointSettingsViewModelTests.swift; sourceTree = "<group>"; };
 		6693C3B5174231C692EFF7A0 /* ConnectionTester.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionTester.swift; sourceTree = "<group>"; };
 		6744416E7D8A322FAE07873A /* StreamingEngineProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamingEngineProtocol.swift; sourceTree = "<group>"; };
+		67804D3671AAB06C02D4DC5B /* VideoOrientationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoOrientationTests.swift; sourceTree = "<group>"; };
 		698CB7C1E76A22989BFA77FC /* BatteryMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryMonitor.swift; sourceTree = "<group>"; };
 		6B8B41BB76BEF70182FE621A /* NowPlayingController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingController.swift; sourceTree = "<group>"; };
 		6BFCDC5C0D6BE5A473DEFF01 /* EncoderBridgeFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncoderBridgeFactory.swift; sourceTree = "<group>"; };
@@ -393,6 +395,7 @@
 				6173C51DF2C9843B940938CD /* EncoderControllerTests.swift */,
 				10A55DF2C4BC623F046A4129 /* ReconnectPolicyTests.swift */,
 				03B49335D60DCD1FE3EF170C /* TransportSecurityValidatorTests.swift */,
+				67804D3671AAB06C02D4DC5B /* VideoOrientationTests.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -520,6 +523,8 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
 			};
 			buildConfigurationList = 12D3DF4B3EA937DC8EC923AB /* Build configuration list for PBXProject "StreamCaster" */;
 			developmentRegion = en;
@@ -635,6 +640,7 @@
 				14E3E4AB0D0F2F59493EE158 /* StreamViewModelTests.swift in Sources */,
 				FBC94CD17D939295ADCDBECE /* ThermalMonitorTests.swift in Sources */,
 				ACB40DCE685C5B1F59E49D8B /* TransportSecurityValidatorTests.swift in Sources */,
+				321CB15A96EB8C0616123F87 /* VideoOrientationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -730,7 +736,6 @@
 				CODE_SIGN_ENTITLEMENTS = StreamCaster/StreamCaster.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 6QPP8SFQ23;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = StreamCaster/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
@@ -816,7 +821,6 @@
 				CODE_SIGN_ENTITLEMENTS = StreamCaster/StreamCaster.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 6QPP8SFQ23;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = StreamCaster/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;

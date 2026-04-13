@@ -127,6 +127,7 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         self.audioSessionManager = container.audioSessionManager
         self.capabilityQuery = container.deviceCapabilityQuery
         loadCameraDevices()
+        observeDeviceOrientation()
     }
 
     /// Internal init used for testing — lets us inject mock dependencies.
@@ -143,6 +144,7 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         self.audioSessionManager = audioSessionManager
         self.capabilityQuery = capabilityQuery ?? AVDeviceCapabilityQuery()
         loadCameraDevices()
+        observeDeviceOrientation()
     }
 
     // MARK: - Stream Lifecycle
@@ -531,6 +533,10 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
 
         encoderBridge.attachPreview(view)
 
+        // Set the video orientation to match the current device position
+        // so the first frame is correctly oriented.
+        applyCurrentDeviceOrientation()
+
         // Show a live preview even before streaming starts.
         if shouldManageIdlePreviewCamera {
             let device = resolveCurrentCamera()
@@ -614,12 +620,70 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     /// Tracks which back camera was last used for cycling purposes.
     private var lastUsedBackCamera: CameraDevice?
 
+    /// Observation token for device orientation changes. Cancelled on deinit.
+    private var orientationObserver: NSObjectProtocol?
+
     /// Attach a camera and apply the user's stabilization preference.
     private func attachCameraWithStabilization(_ device: CameraDevice) {
         encoderBridge.attachCamera(device: device.avCaptureDevice())
         let stabMode = settingsRepository.getVideoStabilizationMode()
         if stabMode != .off {
             encoderBridge.setVideoStabilization(stabMode)
+        }
+    }
+
+    // MARK: Orientation Helpers
+
+    /// Start observing device orientation changes and forward them to the
+    /// encoder bridge so the capture pipeline rotates frames correctly.
+    ///
+    /// Without this, HaishinKit defaults to `.portrait` and landscape
+    /// preview just crops/zooms portrait frames.
+    private func observeDeviceOrientation() {
+        UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+
+        orientationObserver = NotificationCenter.default.addObserver(
+            forName: UIDevice.orientationDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.applyCurrentDeviceOrientation()
+        }
+    }
+
+    /// Read the current device orientation, convert it to an
+    /// `AVCaptureVideoOrientation`, and forward it to the encoder bridge.
+    private func applyCurrentDeviceOrientation() {
+        let deviceOrientation = UIDevice.current.orientation
+
+        // Ignore face-up, face-down, and unknown — these don't map to a
+        // meaningful capture orientation.
+        guard let captureOrientation = Self.captureOrientation(
+            from: deviceOrientation
+        ) else {
+            return
+        }
+
+        encoderBridge.setVideoOrientation(captureOrientation)
+    }
+
+    /// Convert a `UIDeviceOrientation` to the matching
+    /// `AVCaptureVideoOrientation`.
+    ///
+    /// Returns `nil` for orientations that don't have a direct mapping
+    /// (face-up, face-down, unknown).
+    ///
+    /// Note: `landscapeLeft` and `landscapeRight` are intentionally
+    /// swapped because UIDevice and AVCapture use opposite conventions.
+    static func captureOrientation(
+        from deviceOrientation: UIDeviceOrientation
+    ) -> AVCaptureVideoOrientation? {
+        switch deviceOrientation {
+        case .portrait:            return .portrait
+        case .portraitUpsideDown:   return .portraitUpsideDown
+        case .landscapeLeft:        return .landscapeRight
+        case .landscapeRight:       return .landscapeLeft
+        default:                    return nil
         }
     }
 
@@ -676,6 +740,9 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
             // Stream is live → keep the screen on.
             if previousTransport != .live {
                 UIApplication.shared.isIdleTimerDisabled = true
+                OrientationManager.lockToPreferredOrientation(
+                    settings: settingsRepository
+                )
             }
 
         case .idle, .stopped:
@@ -684,10 +751,13 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
             // snapshot (e.g., the initial app-launch snapshot is already idle).
             if case .live = previousTransport {
                 UIApplication.shared.isIdleTimerDisabled = false
+                OrientationManager.unlock()
             } else if case .reconnecting = previousTransport {
                 UIApplication.shared.isIdleTimerDisabled = false
+                OrientationManager.unlock()
             } else if case .stopping = previousTransport {
                 UIApplication.shared.isIdleTimerDisabled = false
+                OrientationManager.unlock()
             }
 
         default:

@@ -172,6 +172,19 @@ protocol EncoderBridge: AnyObject {
     /// roughly once per second while streaming.
     var statsPublisher: AnyPublisher<StreamStats, Never> { get }
 
+    // MARK: Video Orientation
+
+    /// Update the video capture orientation to match the device's physical
+    /// orientation.
+    ///
+    /// Call this whenever the device rotates so the captured frames are
+    /// oriented correctly. Under the hood this sets
+    /// `AVCaptureConnection.videoOrientation` on the camera capture session.
+    ///
+    /// - Parameter orientation: The `AVCaptureVideoOrientation` that matches
+    ///   the current device orientation.
+    func setVideoOrientation(_ orientation: AVCaptureVideoOrientation)
+
     // MARK: Video Stabilization
 
     /// Apply a video stabilization mode to the active camera connection.
@@ -199,6 +212,11 @@ extension EncoderBridge {
         streamId: String?
     ) {
         // No-op — only SRTEncoderBridge implements this.
+    }
+
+    /// Default no-op — only bridges with AVCaptureSession access implement this.
+    func setVideoOrientation(_ orientation: AVCaptureVideoOrientation) {
+        // No-op by default.
     }
 
     /// Default no-op — only bridges with AVCaptureSession access implement this.

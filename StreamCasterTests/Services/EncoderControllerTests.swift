@@ -83,6 +83,18 @@ private final class MockEncoderBridge: EncoderBridge, @unchecked Sendable {
         callLog.append("setVideoStabilization")
     }
 
+    /// The last orientation passed to `setVideoOrientation(_:)`.
+    var lastVideoOrientation: AVCaptureVideoOrientation?
+
+    /// How many times `setVideoOrientation(_:)` was called.
+    var setVideoOrientationCallCount = 0
+
+    func setVideoOrientation(_ orientation: AVCaptureVideoOrientation) {
+        setVideoOrientationCallCount += 1
+        lastVideoOrientation = orientation
+        callLog.append("setVideoOrientation")
+    }
+
     /// Records the call; does nothing else.
     func detachCamera() {
         detachCameraCallCount += 1
