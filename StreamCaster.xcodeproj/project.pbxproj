@@ -30,6 +30,7 @@
 		546436CCC26346A1851346A6 /* ReconnectPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10A55DF2C4BC623F046A4129 /* ReconnectPolicyTests.swift */; };
 		551B51B7733B19BDE66FBD64 /* StreamProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BD1F34BD7BCFE4DE2CF3B19 /* StreamProtocol.swift */; };
 		553E32BEAA6C10B84F569E24 /* PermissionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CB954DC215A2DB8F42DE33 /* PermissionHandler.swift */; };
+		556027B2274B2E5E91ED78DA /* SRTEncoderBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEDF36FE4153D3E280BD8F88 /* SRTEncoderBridge.swift */; };
 		5B079A6F8101CE87B8251A7B /* EndpointProfileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF561C360493A90B2710FBD2 /* EndpointProfileTests.swift */; };
 		60A947861927D18C7290076F /* AVDeviceCapabilityQuery.swift in Sources */ = {isa = PBXBuildFile; fileRef = D37FF8FEAAF4C4A52FF612AC /* AVDeviceCapabilityQuery.swift */; };
 		67820C2CB94E03BB0F4B5871 /* GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6C9FAC4D966EF3BBA1D9940 /* GeneralSettingsView.swift */; };
@@ -163,6 +164,7 @@
 		D677F20FDE88BD83E59BD942 /* StreamCasterStartupSmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamCasterStartupSmokeTests.swift; sourceTree = "<group>"; };
 		D75F536BDCA3B34ADBBB9AA8 /* EndpointSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndpointSettingsView.swift; sourceTree = "<group>"; };
 		D9C28426B38D2F11CB53C1D1 /* AbrPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AbrPolicy.swift; sourceTree = "<group>"; };
+		DEDF36FE4153D3E280BD8F88 /* SRTEncoderBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SRTEncoderBridge.swift; sourceTree = "<group>"; };
 		E25454D40EC3C39127B2CDA8 /* SettingsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsRepository.swift; sourceTree = "<group>"; };
 		E5D107DED1C39D577454E68B /* ReconnectPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReconnectPolicy.swift; sourceTree = "<group>"; };
 		E5FDA78F5EA51D8B64ED2E4C /* StreamingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamingEngine.swift; sourceTree = "<group>"; };
@@ -206,6 +208,7 @@
 				6B8B41BB76BEF70182FE621A /* NowPlayingController.swift */,
 				A951F2F02BC9DCE181AE0C45 /* ProlongedSessionMonitor.swift */,
 				E5D107DED1C39D577454E68B /* ReconnectPolicy.swift */,
+				DEDF36FE4153D3E280BD8F88 /* SRTEncoderBridge.swift */,
 				E5FDA78F5EA51D8B64ED2E4C /* StreamingEngine.swift */,
 				6744416E7D8A322FAE07873A /* StreamingEngineProtocol.swift */,
 				F91B95F234077144BEE90C9F /* StubEncoderBridge.swift */,
@@ -574,6 +577,7 @@
 				DAA926F188A3562669B205FF /* ProlongedSessionMonitor.swift in Sources */,
 				DD45E0E4B2B1D56B139BBE69 /* ReconnectPolicy.swift in Sources */,
 				B3FCA0CB169749B36940EC36 /* RedactingLogger.swift in Sources */,
+				556027B2274B2E5E91ED78DA /* SRTEncoderBridge.swift in Sources */,
 				C355F30A835D5B19D38EEA06 /* SettingsRepository.swift in Sources */,
 				5021284D1D6CD723638877AD /* SettingsRootView.swift in Sources */,
 				8EC8F7B218B17513DF1BFC23 /* SettingsViewModel.swift in Sources */,
