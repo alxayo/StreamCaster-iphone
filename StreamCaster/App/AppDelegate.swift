@@ -72,9 +72,15 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        // TODO: Initialize crash reporting (KSCrash)
-        // TODO: Set up dependency container
-        // TODO: Configure default settings
+        // Initialize the KSCrash crash reporter so we capture any crashes
+        // that happen during the session. This must be called early — before
+        // other code runs — so we don't miss crashes during startup.
+        CrashReportConfigurator.configure()
+
+        // Initialize the dependency container. Accessing `.shared` triggers
+        // its lazy setup, which creates all the app's shared services
+        // (streaming engine, profile repository, settings, etc.).
+        _ = DependencyContainer.shared
 
         return true
     }

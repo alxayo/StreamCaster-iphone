@@ -23,6 +23,11 @@ final class KeychainEndpointProfileRepository: EndpointProfileRepository {
     /// The UserDefaults key where we store the JSON array of profile metadata.
     private let profilesKey = "com.port80.app.endpoint_profiles"
 
+    /// UserDefaults key that tracks whether we've already created the
+    /// default seed profile. We check this flag on every launch so we
+    /// only seed once — even if the user later deletes the profile.
+    private let seedProfileKey = "com.port80.app.seed_profile_created"
+
     /// UserDefaults instance. Using `.standard` — the default shared store.
     private let defaults: UserDefaults
 
@@ -33,6 +38,11 @@ final class KeychainEndpointProfileRepository: EndpointProfileRepository {
     ///   Pass a custom one in tests to avoid polluting real user data.
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+
+        // On first launch, create a default "Local RTMP" profile so the
+        // user has something ready to go out of the box — matching what
+        // the Android app does.
+        seedDefaultProfileIfNeeded()
     }
 
     // MARK: - EndpointProfileRepository Protocol
@@ -133,6 +143,59 @@ final class KeychainEndpointProfileRepository: EndpointProfileRepository {
     /// Quick check: can we read and write to the Keychain right now?
     func isKeychainAvailable() -> Bool {
         return KeychainHelper.isAvailable()
+    }
+
+    // MARK: - Default Profile Seeding
+
+    /// Seeds a default "Local RTMP" profile on first launch.
+    ///
+    /// **Why do we do this?**
+    /// The Android version of StreamCaster ships with a pre-configured
+    /// "Local RTMP" profile pointing to `rtmp://192.168.0.12:1935/live`.
+    /// This makes it easy for new users to test with a local RTMP server
+    /// (like OBS or nginx-rtmp) without manually entering a URL.
+    ///
+    /// **How it works:**
+    /// 1. Check the `seedProfileKey` flag in UserDefaults. If `true`, we
+    ///    already seeded → return immediately. This ensures we only seed
+    ///    once, even if the user deletes the profile later.
+    /// 2. If no profiles exist yet (`getAll().isEmpty`), create a default
+    ///    profile and save it.
+    /// 3. Set the flag to `true` so we never seed again.
+    private func seedDefaultProfileIfNeeded() {
+        // If we've already seeded on a previous launch, skip.
+        if defaults.bool(forKey: seedProfileKey) {
+            return
+        }
+
+        // Only seed if the user has no profiles at all. If they already
+        // have profiles (e.g., restored from a backup), don't add ours.
+        if getAll().isEmpty {
+            // Create a starter profile pointing to a common local RTMP
+            // server address. The user can edit or delete it later.
+            let defaultProfile = EndpointProfile(
+                id: UUID().uuidString,
+                name: "Local RTMP",
+                rtmpUrl: "rtmp://192.168.0.12:1935/live",
+                streamKey: "",
+                username: nil,
+                password: nil,
+                isDefault: true
+            )
+
+            // Save the profile. If the Keychain write fails (e.g., device
+            // is locked at boot), catch the error silently — seeding is a
+            // nice-to-have, not critical.
+            do {
+                try save(defaultProfile)
+            } catch {
+                print("⚠️ Could not seed default profile: \(error.localizedDescription)")
+                return
+            }
+        }
+
+        // Mark seeding as done so we don't repeat it on future launches.
+        defaults.set(true, forKey: seedProfileKey)
     }
 
     // MARK: - RTMP URL Parsing

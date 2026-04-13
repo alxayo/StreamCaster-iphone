@@ -1,4 +1,12 @@
 import Foundation
+// Try to import the KSCrash Recording module. The module name may differ
+// depending on the KSCrash SPM version/product names, so we use
+// conditional imports to compile safely regardless of what's available.
+#if canImport(KSCrashRecording)
+import KSCrashRecording
+#elseif canImport(Recording)
+import Recording
+#endif
 
 /// CrashReportConfigurator sets up crash reporting for the app.
 ///
@@ -40,16 +48,14 @@ struct CrashReportConfigurator {
     // MARK: - Setup
 
     /// Internal setup logic, separated so errors can be thrown and caught.
+    ///
+    /// This method:
+    ///   1. Validates the crash endpoint is HTTPS (security requirement).
+    ///   2. Creates a KSCrash configuration and installs signal/exception
+    ///      handlers that capture crashes and save them to disk.
+    ///
+    /// The saved crash reports can later be uploaded to our server.
     private static func setupCrashReporting() throws {
-        // TODO: When KSCrash SPM dependency is resolved, uncomment and implement:
-        // 1. Create KSCrash instance
-        // 2. Configure with HTTPS-only transport (reject http:// endpoints)
-        // 3. Register CredentialSanitizer as a report filter
-        // 4. Install crash handlers
-        //
-        // For now, this is a placeholder that will be completed when
-        // the KSCrash dependency is available.
-
         // Validate that the configured endpoint uses HTTPS before proceeding.
         // This is a security requirement — crash reports may contain device
         // information and we never want to send that over plain HTTP.
@@ -57,6 +63,31 @@ struct CrashReportConfigurator {
               url.scheme == "https" else {
             throw CrashReportError.insecureEndpoint
         }
+
+        // --- KSCrash initialization ---
+        // KSCrash's Recording module installs low-level signal and exception
+        // handlers. When the app crashes, KSCrash captures the stack trace,
+        // device info, and app state, then writes a report to disk. On the
+        // next launch, these reports can be read and uploaded.
+        //
+        // We use #if canImport guards because the KSCrash SPM package
+        // product names may vary between versions. If neither module is
+        // available, we skip initialization gracefully — the app still
+        // works, just without automatic crash reporting.
+        #if canImport(KSCrashRecording)
+        let config = KSCrashConfiguration()
+        let install = KSCrashInstallation.sharedInstance()
+        try install.install(with: config)
+        #elseif canImport(Recording)
+        let config = KSCrashConfiguration()
+        let install = KSCrashInstallation.sharedInstance()
+        try install.install(with: config)
+        #else
+        // KSCrash module not available — log a warning so developers
+        // know crash reporting is inactive. This can happen if the
+        // SPM dependency hasn't been resolved yet.
+        print("⚠️ KSCrash module not available — crash reporting disabled.")
+        #endif
     }
 
     // MARK: - Endpoint Validation

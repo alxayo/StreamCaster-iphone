@@ -393,8 +393,52 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     /// Copy the coordinator's snapshot to our @Published property.
     /// Because we're @MainActor, this triggers SwiftUI to re-render any
     /// observing views.
+    ///
+    /// This method also manages the device idle timer (auto-lock).
+    /// When we go live, we disable the idle timer so the screen stays on —
+    /// a user who is streaming doesn't want their phone to auto-lock and
+    /// interrupt the broadcast. When the stream stops (or returns to idle),
+    /// we re-enable the idle timer so normal auto-lock behavior resumes.
     private func applySnapshot(_ snapshot: StreamSessionSnapshot) {
+        // Detect when the transport state changes so we can toggle the
+        // idle timer only on actual transitions, not on every snapshot.
+        let previousTransport = self.sessionSnapshot.transport
         self.sessionSnapshot = snapshot
+
+        // --- Keep Screen On (Android parity: FLAG_KEEP_SCREEN_ON) ---
+        //
+        // Why? During a live stream the screen must stay on. If iOS
+        // auto-locks, the camera stops, the RTMP connection drops, and
+        // the stream is ruined. Setting isIdleTimerDisabled = true tells
+        // iOS "don't turn the screen off while we're working."
+        //
+        // We only flip the flag when the transport *changes* to avoid
+        // redundant UIApplication calls on every snapshot update.
+        switch snapshot.transport {
+        case .live:
+            // Stream is live → keep the screen on.
+            if previousTransport != .live {
+                UIApplication.shared.isIdleTimerDisabled = true
+            }
+
+        case .idle, .stopped:
+            // Stream ended or reset → allow the screen to auto-lock again.
+            // We check the previous state to avoid toggling on every idle
+            // snapshot (e.g., the initial app-launch snapshot is already idle).
+            if case .live = previousTransport {
+                UIApplication.shared.isIdleTimerDisabled = false
+            } else if case .reconnecting = previousTransport {
+                UIApplication.shared.isIdleTimerDisabled = false
+            } else if case .stopping = previousTransport {
+                UIApplication.shared.isIdleTimerDisabled = false
+            }
+
+        default:
+            // For .connecting, .reconnecting, .stopping — leave the flag
+            // as-is. If we were live and are now reconnecting, we still
+            // want the screen to stay on.
+            break
+        }
     }
 
     private func waitForEncoderConnection(timeoutMs: Int) async -> Bool {
