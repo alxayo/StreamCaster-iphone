@@ -120,6 +120,9 @@ private class MockSettingsRepository: SettingsRepository {
 
     func getRecordingDestination() -> RecordingDestination { recordingDestination }
     func setRecordingDestination(_ destination: RecordingDestination) { self.recordingDestination = destination }
+
+    func isStartInMinimalMode() -> Bool { false }
+    func setStartInMinimalMode(_ enabled: Bool) {}
 }
 
 // MARK: - BatteryMonitorTests
