@@ -68,9 +68,17 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     /// The private coordinator actor that serializes all state mutations.
     private let coordinator = StreamingSessionCoordinator()
 
-    /// The encoder bridge handles actual video/audio encoding and RTMP publishing.
-    /// For now this is a stub — T-007b will replace it with HaishinKit.
-    private let encoderBridge: EncoderBridge
+    /// The encoder bridge handles actual video/audio encoding and publishing.
+    ///
+    /// This is `var` (not `let`) because the bridge is **recreated each time
+    /// the user starts a stream**. The factory (`EncoderBridgeFactory`) picks
+    /// the right bridge based on the endpoint URL:
+    /// - `rtmp://` / `rtmps://` → `HaishinKitEncoderBridge`
+    /// - `srt://` → `SRTEncoderBridge`
+    ///
+    /// A fresh bridge is created per stream so that leftover state from a
+    /// previous connection (e.g., RTMP) doesn't leak into a new one (e.g., SRT).
+    private var encoderBridge: EncoderBridge
 
     /// Repository for looking up RTMP endpoint profiles (server URL + stream key).
     private let profileRepository: EndpointProfileRepository
@@ -157,6 +165,15 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         // Step 2: Build the stream configuration from user settings.
         let config = buildStreamConfig(profileId: profileId)
 
+        // Step 2b: Create the correct encoder bridge for this profile's protocol.
+        // The factory inspects the URL scheme (rtmp:// vs srt://) and returns
+        // either an HaishinKitEncoderBridge or SRTEncoderBridge.
+        // We create a NEW bridge each time so leftover state from a previous
+        // stream (e.g., an RTMP connection) doesn't interfere with a new one
+        // (e.g., SRT). This also means switching endpoints between RTMP and
+        // SRT "just works" — no need to manually clean up the old bridge.
+        self.encoderBridge = EncoderBridgeFactory.makeBridge(for: profile)
+
         // Step 3: Transition to .connecting state.
         let connectingSnapshot = await coordinator.startSession(config: config)
         applySnapshot(connectingSnapshot)
@@ -191,7 +208,10 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
             encoderBridge.attachAudio()
         }
 
-        // Step 6: Connect to the RTMP server and start publishing.
+        // Step 6: Connect to the streaming server and start publishing.
+        // The encoder bridge handles the protocol-specific details:
+        // - HaishinKitEncoderBridge: opens an RTMP/RTMPS connection
+        // - SRTEncoderBridge: opens an SRT socket connection
         encoderBridge.connect(url: profile.rtmpUrl, streamKey: profile.streamKey)
 
         // Step 7: Verify the connection succeeded, then go live.

@@ -78,12 +78,16 @@ final class DependencyContainer {
         StreamingEngine.shared
     }()
 
-    /// Low-level bridge to the encoding/publishing library (HaishinKit).
+    /// Low-level bridge to the encoding/publishing library (HaishinKit or SRT).
     /// The streaming engine talks to this instead of calling HaishinKit
     /// directly, so we can swap libraries or use a mock in tests.
     ///
-    /// Uses the real HaishinKit bridge in production. For unit tests,
-    /// inject `StubEncoderBridge` via the test initializer instead.
+    /// This provides the **default** bridge used for camera preview before
+    /// the user starts streaming. When a stream actually starts,
+    /// `StreamingEngine` replaces this with a protocol-appropriate bridge
+    /// created by `EncoderBridgeFactory` (RTMP vs SRT based on the URL).
+    ///
+    /// For unit tests, inject `StubEncoderBridge` via the test initializer.
     lazy var encoderBridge: EncoderBridge = {
         HaishinKitEncoderBridge()
     }()

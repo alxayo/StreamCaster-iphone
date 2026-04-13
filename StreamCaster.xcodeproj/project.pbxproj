@@ -70,6 +70,7 @@
 		C355F30A835D5B19D38EEA06 /* SettingsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = E25454D40EC3C39127B2CDA8 /* SettingsRepository.swift */; };
 		C99CE057845B3C23396DCCC4 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A580CEA9A86A6A8CF1EA215 /* AppDelegate.swift */; };
 		CC78039259789569B8B8158D /* StreamStatsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C8B9279EFE96E37DFCAF924 /* StreamStatsTests.swift */; };
+		CFA108A40108C58894CCEC0F /* RecordingFileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C2BD6DA420DBEA54A2E1D43 /* RecordingFileManager.swift */; };
 		D0F2C486BB05D0907572E9A8 /* EncoderController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6485A87613ED34E3D50B9BF9 /* EncoderController.swift */; };
 		D374827D97649A5BCBFC922C /* DeviceCapabilityQuery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E89C221132B3B8558444345 /* DeviceCapabilityQuery.swift */; };
 		D6023C14F756C14858AD205F /* EndpointProfileRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A965B0520EEE7D0D43ABB1D /* EndpointProfileRepository.swift */; };
@@ -78,6 +79,7 @@
 		DE5A270F33473B5CA8B326C6 /* AbrLadderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCF64AEF65B6A704C0A87AE /* AbrLadderTests.swift */; };
 		DFA3E79B59406A0A45961D17 /* TransportSecurityAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B87BD696DA8FA4123C2263F /* TransportSecurityAlert.swift */; };
 		E40C505E4E43496EF781BF6C /* HaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = 38D79AA9145073A6DF059C29 /* HaishinKit */; };
+		E419D024410882CFE1D93A81 /* EncoderBridgeFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BFCDC5C0D6BE5A473DEFF01 /* EncoderBridgeFactory.swift */; };
 		E46A6A9216D449E2F9CE9D69 /* EncoderBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA83263409C45621184A1B55 /* EncoderBridge.swift */; };
 		ECC88D6842A68FEEB4409120 /* EndpointSettingsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6679E7767D500F0FFD5292B6 /* EndpointSettingsViewModelTests.swift */; };
 		F26327DFBE4A76699DD90CEC /* RTMPHaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0D6B43C65B33139570EFFB2E /* RTMPHaishinKit */; };
@@ -109,6 +111,7 @@
 		10A55DF2C4BC623F046A4129 /* ReconnectPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReconnectPolicyTests.swift; sourceTree = "<group>"; };
 		11CB954DC215A2DB8F42DE33 /* PermissionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionHandler.swift; sourceTree = "<group>"; };
 		15590F5CA9CC73BF31C4EA91 /* KeychainEndpointProfileRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainEndpointProfileRepository.swift; sourceTree = "<group>"; };
+		1C2BD6DA420DBEA54A2E1D43 /* RecordingFileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingFileManager.swift; sourceTree = "<group>"; };
 		20A6A45BAB5711874C7868CB /* ThermalMonitorProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThermalMonitorProtocol.swift; sourceTree = "<group>"; };
 		20E9CCAF9D44BB525DF757D8 /* StreamView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamView.swift; sourceTree = "<group>"; };
 		2825C7E29A4E2C8B5510689F /* NoOpOverlayManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoOpOverlayManager.swift; sourceTree = "<group>"; };
@@ -133,6 +136,7 @@
 		6744416E7D8A322FAE07873A /* StreamingEngineProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamingEngineProtocol.swift; sourceTree = "<group>"; };
 		698CB7C1E76A22989BFA77FC /* BatteryMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryMonitor.swift; sourceTree = "<group>"; };
 		6B8B41BB76BEF70182FE621A /* NowPlayingController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingController.swift; sourceTree = "<group>"; };
+		6BFCDC5C0D6BE5A473DEFF01 /* EncoderBridgeFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncoderBridgeFactory.swift; sourceTree = "<group>"; };
 		6F636236F1E93C2F9F27B744 /* MetricsCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricsCollector.swift; sourceTree = "<group>"; };
 		75C3726E33CC0525BF232F7F /* AbrPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AbrPolicyTests.swift; sourceTree = "<group>"; };
 		792FEB02F0487E63B4D60829 /* CameraPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreviewView.swift; sourceTree = "<group>"; };
@@ -203,11 +207,13 @@
 				094E8E14046E5C62E1A8F019 /* ConnectionManager.swift */,
 				6693C3B5174231C692EFF7A0 /* ConnectionTester.swift */,
 				CA83263409C45621184A1B55 /* EncoderBridge.swift */,
+				6BFCDC5C0D6BE5A473DEFF01 /* EncoderBridgeFactory.swift */,
 				6485A87613ED34E3D50B9BF9 /* EncoderController.swift */,
 				410FC52E51C40ECF65632367 /* HaishinKitEncoderBridge.swift */,
 				6B8B41BB76BEF70182FE621A /* NowPlayingController.swift */,
 				A951F2F02BC9DCE181AE0C45 /* ProlongedSessionMonitor.swift */,
 				E5D107DED1C39D577454E68B /* ReconnectPolicy.swift */,
+				1C2BD6DA420DBEA54A2E1D43 /* RecordingFileManager.swift */,
 				DEDF36FE4153D3E280BD8F88 /* SRTEncoderBridge.swift */,
 				E5FDA78F5EA51D8B64ED2E4C /* StreamingEngine.swift */,
 				6744416E7D8A322FAE07873A /* StreamingEngineProtocol.swift */,
@@ -559,6 +565,7 @@
 				BBC9753897594BBB41BEAFBF /* DependencyContainer.swift in Sources */,
 				D374827D97649A5BCBFC922C /* DeviceCapabilityQuery.swift in Sources */,
 				E46A6A9216D449E2F9CE9D69 /* EncoderBridge.swift in Sources */,
+				E419D024410882CFE1D93A81 /* EncoderBridgeFactory.swift in Sources */,
 				D0F2C486BB05D0907572E9A8 /* EncoderController.swift in Sources */,
 				980B3AC122A4D5A851C7E980 /* EndpointProfile.swift in Sources */,
 				D6023C14F756C14858AD205F /* EndpointProfileRepository.swift in Sources */,
@@ -576,6 +583,7 @@
 				553E32BEAA6C10B84F569E24 /* PermissionHandler.swift in Sources */,
 				DAA926F188A3562669B205FF /* ProlongedSessionMonitor.swift in Sources */,
 				DD45E0E4B2B1D56B139BBE69 /* ReconnectPolicy.swift in Sources */,
+				CFA108A40108C58894CCEC0F /* RecordingFileManager.swift in Sources */,
 				B3FCA0CB169749B36940EC36 /* RedactingLogger.swift in Sources */,
 				556027B2274B2E5E91ED78DA /* SRTEncoderBridge.swift in Sources */,
 				C355F30A835D5B19D38EEA06 /* SettingsRepository.swift in Sources */,
