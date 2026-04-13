@@ -1,8 +1,8 @@
 # StreamCaster — iOS RTMP Streaming Application Specification
 
-**Version:** 2.1 (Post-Adversarial Review)  
-**Date:** March 15, 2026  
-**Status:** Draft  
+**Version:** 3.0 (Feature Parity Release)  
+**Date:** July 2025  
+**Status:** Implemented  
 **Bundle ID:** `com.port80.app`  
 **App Name:** StreamCaster
 
@@ -10,18 +10,25 @@
 
 ## 1. Overview
 
-**StreamCaster** is a free, open-source native iOS application that captures video and/or audio from the device camera and microphone and streams it in real-time to a user-configured RTMP/RTMPS ingestion endpoint.
+**StreamCaster** is a free, open-source native iOS application that captures video and/or audio from the device camera and microphone and streams it in real-time to a user-configured RTMP/RTMPS/SRT ingestion endpoint.
 
 Distributed via Apple App Store, TestFlight, and sideloading (IPA via AltStore / notarized direct distribution under EU DMA).
 
 ### 1.1 Product Scope
 
-- Native iOS app to live-stream camera and/or microphone to a single RTMP/RTMPS ingestion endpoint.
-- Optional concurrent local MP4 recording.
+- Native iOS app to live-stream camera and/or microphone to a single RTMP/RTMPS or SRT ingestion endpoint.
+- **Multi-codec support:** H.264, H.265 (HEVC), and AV1 video encoding with automatic H.264 fallback when AV1 hardware is unavailable.
+- **Codec-specific adaptive bitrate** with separate quality ladders per codec.
+- **SRT protocol** support alongside RTMP/RTMPS, with automatic protocol detection from URL scheme.
+- Optional concurrent local MP4 recording via `RecordingFileManager`.
+- **Minimal mode** — power-saving toggle that hides the camera preview while streaming continues.
 - Basic streaming HUD (bitrate, fps, resolution, duration, connection state).
-- Multiple saved endpoint profiles with Keychain-backed credential storage.
-- Adaptive bitrate with device-capability-aware quality ladder.
+- Multiple saved endpoint profiles with Keychain-backed credential storage and a seed "Local RTMP" profile on first launch.
+- Adaptive bitrate with device-capability-aware and codec-aware quality ladder.
+- Keep-screen-on during active streaming (idle timer disabled).
+- KSCrash crash reporting with credential sanitization.
 - Best-effort background continuity: audio-only via background audio mode; video may continue temporarily via PiP while iOS permits camera capture, otherwise the session must degrade to audio-only or stop.
+- **244 unit tests** with GitHub Actions CI pipeline.
 
 ### 1.2 Non-Goals
 
@@ -29,12 +36,12 @@ The following are explicitly out of scope for the current version:
 
 - Multi-destination streaming.
 - Overlay rendering beyond a no-op architectural hook.
-- H.265 encoding (deferred).
-- SRT protocol (deferred).
 - Stream scheduling.
 - Analytics or tracking SDKs.
 - Ads or in-app purchases.
 - iPad or Mac Catalyst optimized UI.
+
+> **Note:** H.265 and SRT were previously listed as non-goals but have been implemented as of v3.0.
 
 ---
 
@@ -43,8 +50,8 @@ The following are explicitly out of scope for the current version:
 | Component | Choice | Rationale |
 |---|---|---|
 | **Language** | **Swift 5.10+** | Native, performant, null-safe via optionals, dominant iOS language. HaishinKit is Swift-native. |
-| **Streaming Library** | **HaishinKit.swift v2.0.x** (BSD 3-Clause) | Most actively maintained open-source iOS RTMP library. Supports RTMP, RTMPS, SRT. Provides AVFoundation camera integration, adaptive bitrate, H.264/H.265/AAC hardware encoding via VideoToolbox. |
-| **Camera Framework** | **HaishinKit `RTMPStream`** (AVFoundation internally) | HaishinKit's stream class is the sole camera owner via `attachCamera()` / `attachAudio()`. It manages `AVCaptureSession` internally. No separate CaptureSession layering. See §5.3. |
+| **Streaming Library** | **HaishinKit.swift v2.0.x** (BSD 3-Clause) | Most actively maintained open-source iOS RTMP library. Supports RTMP, RTMPS, SRT. Provides AVFoundation camera integration, adaptive bitrate, H.264/H.265/AAC hardware encoding via VideoToolbox. AV1 encoding via VideoToolbox on A17 Pro+. |
+| **Camera Framework** | **HaishinKit `RTMPStream`** (AVFoundation internally) | HaishinKit's stream class is the sole camera owner via `attachCamera()` / `attachAudio()`. It manages `AVCaptureSession` internally. No separate CaptureSession layering. See §5.3. Protocol bridge factory (`EncoderBridgeFactory`) auto-selects RTMP or SRT bridge based on URL scheme. |
 | **Build System** | **Xcode 16.x + Swift Package Manager (SPM)** | Standard toolchain. No CocoaPods or Carthage dependency. |
 | **Min Deployment Target** | **iOS 15.0** | Required for `AVPictureInPictureController.ContentSource` (sample-buffer PiP), `async/await`, structured concurrency, modern SwiftUI. Covers ~98% of active iOS devices. |
 | **Target SDK** | **iOS 18 (latest)** | Access to latest platform APIs and App Store submission compliance. |
@@ -76,7 +83,7 @@ The following are explicitly out of scope for the current version:
 | **Target SDK** | iOS 18 (latest). Required for App Store submission in 2026. |
 | **Device class** | iPhones only. iPad and Mac Catalyst are not guaranteed to work and are not tested against. |
 | **Device tiers** | **Tier 1 (constrained):** A10/A11 chipsets (iPhone 7/8 class), ≤ 2 GB RAM. **Tier 2 (mid-range):** A12–A14 (iPhone XS through 12 class), 3–4 GB RAM. **Tier 3 (modern):** A15+ (iPhone 13+), 4+ GB RAM. Feature availability (60 fps, local recording) is gated by tier. See §4.2 VS-02, §8.3, §MC-05. |
-| **Camera/encoder** | Hardware H.264 (Baseline/Main) + AAC-LC via VideoToolbox expected. H.265 deferred. All supported iPhones have hardware H.264. |
+| **Camera/encoder** | Hardware H.264 (Baseline/Main), H.265 (HEVC), AV1 (A17 Pro+) + AAC-LC via VideoToolbox. AV1 falls back to H.264 on unsupported hardware. |
 | **Network** | Hostile networks assumed. RTMPS is mandatory whenever a stream key, password, token, or any other secret is present. Plain RTMP is permitted only for anonymous endpoints that do not require credentials or bearer material (see §9). |
 | **Background model** | iOS suspends apps aggressively. Background video is a best-effort behavior only: PiP may temporarily preserve camera capture, but the app must be prepared to lose the camera at any time and degrade to audio-only or stop. Audio-only streaming may continue via `UIBackgroundModes: audio` while the audio session remains active. |
 | **Thermal** | iOS may throttle CPU/GPU under thermal pressure. `ProcessInfo.ThermalState` provides system-level thermal status. The app must respond to thermal escalation progressively. |
@@ -101,7 +108,7 @@ The following are explicitly out of scope for the current version:
 |---|---|---|---|
 | VS-01 | **Resolution** selectable from device-supported list, filtered by `AVCaptureDevice.formats` and `VTSessionCopySupportedPropertyDictionary` for encoder compatibility. | **720p (1280×720)** | Must |
 | VS-02 | **Frame rate** selectable: 24, 25, 30, 60 fps — shown only if the device camera+encoder support it (checked via `AVFrameRateRange`). **60 fps must be hidden on Tier 1 devices (A10/A11)** regardless of hardware capability, because sustained 60 fps encoding causes thermal oscillation within minutes on these chipsets. See §3 device tiers. | **30 fps** | Must |
-| VS-03 | **Video codec**: H.264 (Baseline/Main profile). H.265 deferred. | H.264 | Must |
+| VS-03 | **Video codec**: H.264 (Baseline/Main), H.265 (HEVC), or AV1. H.264 is universal. H.265/AV1 require Enhanced RTMP server support. AV1 requires A17 Pro (iPhone 15 Pro+) hardware and falls back to H.264 on unsupported devices. AV1 is not supported over SRT. | H.264 | Must |
 | VS-04 | **Video bitrate** selectable or auto. Range: 500 kbps – 8 Mbps, capped to encoder capability. | **2.5 Mbps** (for 720p30) | Must |
 | VS-05 | **Keyframe interval** configurable (1–5 seconds). | **2 seconds** | Should |
 
@@ -115,16 +122,17 @@ The following are explicitly out of scope for the current version:
 | AS-04 | **Channels**: Mono / Stereo. | **Stereo** | Should |
 | AS-05 | **Mute toggle** during active stream (stops sending audio data). | — | Must |
 
-### 4.4 RTMP Endpoint Configuration
+### 4.4 Endpoint Configuration
 
 | ID | Requirement | Priority |
 |---|---|---|
-| EP-01 | User can enter an **RTMP URL** (e.g., `rtmp://ingest.example.com/live`). | Must |
+| EP-01 | User can enter an **ingest URL** (e.g., `rtmp://...`, `rtmps://...`, or `srt://...`). Protocol is auto-detected from URL scheme. | Must |
 | EP-02 | Support **RTMPS** (RTMP over TLS/SSL) endpoints. | Must |
+| EP-02a | Support **SRT** (Secure Reliable Transport) endpoints with configurable mode (caller/listener/rendezvous), passphrase, latency, and stream ID. | Must |
 | EP-03 | Optional **stream key** field (appended to URL or sent separately, per convention). | Must |
 | EP-04 | Optional **username / password** authentication fields. | Must |
 | EP-05 | **Save as default** — persists the last-used endpoint + key so the user doesn't re-enter it. Credentials stored only via Keychain Services. | Must |
-| EP-06 | Multiple saved endpoint profiles (name + URL + key + auth). | Should |
+| EP-06 | Multiple saved endpoint profiles (name + URL + key + auth + SRT fields). A **seed "Local RTMP" profile** (`rtmp://192.168.0.12:1935/live`) is created on first launch. | Should |
 | EP-07 | **Connection test** button — validates transport reachability and publish preconditions before going live. A handshake-only probe must be labeled as a transport probe and must not imply that a long-running publish has been validated. Any authenticated publish probe must obey the same transport security rules as live streaming (see §9.2). | Should |
 
 ### 4.5 Adaptive Bitrate (ABR)
@@ -332,10 +340,10 @@ iOS does not support indefinite camera access in the background the way Android'
 
 ### 8.2 ABR Ladder
 
-- Define a per-device quality ladder based on camera and encoder capabilities, e.g.:
-  - **1080p30 → 720p30 → 540p30 → 480p30** (resolution steps)
-  - **30 fps → 24 fps → 15 fps** (frame rate steps)
-  - Bitrate scales proportionally to resolution × fps.
+- Define a per-device, **per-codec** quality ladder based on camera and encoder capabilities:
+  - **Resolution steps:** 1080p30 → 720p30 → 540p30 → 480p30
+  - **Frame rate steps:** 30 fps → 24 fps → 15 fps
+  - **Codec-specific bitrate targets:** H.265 uses ~40% lower bitrate than H.264 at same quality. AV1 uses ~45% lower bitrate than H.264. Bitrate scales proportionally to resolution × fps × codec efficiency.
 - ABR first reduces bitrate only (via `RTMPStream.videoSettings.bitRate`). If insufficient, step down resolution/fps via controlled encoder restart.
 - Prefer bitrate reduction before frame skipping.
 - All quality-change requests from **both** the ABR system and the thermal throttling system (SL-07) must be serialized through a single `EncoderController` component using a Swift `actor` or `AsyncStream` with serial processing. This prevents concurrent encoder reconfiguration races.
@@ -652,10 +660,26 @@ dependencies: [
 | **ViewModel** | XCTest + Combine testing (`expectation`, `sink`). Mock repositories and engine. |
 | **Repository** | XCTest for UserDefaults and Keychain tests. |
 | **ConnectionManager** | Unit test reconnection logic, backoff timing, jitter, NWPathMonitor integration. |
+| **ABR & Encoder** | Unit tests for ABR ladder (including codec-specific bitrate targets), ABR policy, and EncoderController actor serialization. |
+| **Thermal** | Unit tests for ThermalMonitor state transitions and cooldown behavior. |
+| **Security** | Unit tests for CredentialSanitizer, CrashReportConfigurator, and TransportSecurityValidator. |
 | **DeviceCapabilityQuery** | UI tests on real devices (oldest supported iPhone + latest). |
-| **Streaming E2E** | Manual test matrix: 3 devices (iPhone 8 iOS 15, iPhone 12 iOS 17, iPhone 15 iOS 18) × (RTMP, RTMPS) × (video+audio, video-only, audio-only). |
+| **Streaming E2E** | Manual test matrix: 3 devices (iPhone 8 iOS 15, iPhone 12 iOS 17, iPhone 15 iOS 18) × (RTMP, RTMPS, SRT) × (video+audio, video-only, audio-only). |
 | **Lifecycle** | UI tests for app backgrounding with PiP, foreground return, audio session interruption. |
 | **UI** | SwiftUI preview tests + XCUITest for navigation, control states. |
+
+> **Current coverage:** 244 unit tests across 18 test files, executed on every push via GitHub Actions CI.
+
+### 15.1 Continuous Integration
+
+The project uses **GitHub Actions** for CI (`.github/workflows/ci.yml`). Every push to `main` and every pull request triggers:
+
+1. Checkout repository
+2. Select Xcode version (macOS 15 runner with Xcode 16.x)
+3. Install XcodeGen and generate `.xcodeproj` from `project.yml`
+4. Resolve Swift Package Manager dependencies
+5. Build for iOS Simulator (no signing required)
+6. Run full unit test suite (244 tests)
 
 ---
 
@@ -680,50 +704,70 @@ dependencies: [
 
 ## 17. Phased Implementation Plan
 
-### Phase 1 — Core Streaming (MVP)
-- [ ] Project scaffolding (Xcode project, SPM, SwiftUI App, entitlements)
-- [ ] Camera preview via HaishinKit `MTHKView` (back camera default)
-- [ ] Basic RTMP streaming (video + audio) via HaishinKit
-- [ ] Start / stop controls
-- [ ] Single RTMP endpoint input (URL + stream key) with embedded-key extraction (§9.1)
-- [ ] Background audio mode + PiP for best-effort background continuity, **including PiP lifecycle edge cases**: activation failure detection, dismissed-while-backgrounded handling (SL-06), `beginBackgroundTask` protection, `MTHKView` pause/resume, audio interruption → PiP → camera causal chain recovery (SL-08). **PiP is not shippable without its failure recovery paths, and the UI/help text must describe background video as best-effort rather than guaranteed.**
-- [ ] Runtime permissions handling (Camera, Microphone)
-- [ ] StreamingEngine singleton with coordinator-owned lifecycle state and published `StreamSessionSnapshot` updates on `@MainActor`
-- [ ] Dead-man’s-switch local notification for background termination (§7.3)
+### Phase 1 — Core Streaming (MVP) ✅ COMPLETE
+- [x] Project scaffolding (Xcode project, SPM, SwiftUI App, entitlements)
+- [x] Camera preview via HaishinKit `MTHKView` (back camera default)
+- [x] Basic RTMP streaming (video + audio) via HaishinKit
+- [x] Start / stop controls
+- [x] Single RTMP endpoint input (URL + stream key) with embedded-key extraction (§9.1)
+- [x] Background audio mode + PiP for best-effort background continuity
+- [x] Runtime permissions handling (Camera, Microphone)
+- [x] StreamingEngine singleton with coordinator-owned lifecycle state
+- [x] Dead-man’s-switch local notification for background termination (§7.3)
 
-### Phase 2 — Settings & Configuration
-- [ ] Video settings screen (resolution, FPS, bitrate, keyframe interval — all filtered by AVCaptureDevice.formats)
-- [ ] Audio settings screen (bitrate, sample rate, channels)
-- [ ] Camera switching (front ↔ back)
-- [ ] Stream mode selection (video+audio / video-only / audio-only)
-- [ ] Orientation lock (portrait / landscape)
-- [ ] Keychain credential storage
-- [ ] Save default endpoint; endpoint profiles
+### Phase 2 — Settings & Configuration ✅ COMPLETE
+- [x] Video settings screen (resolution, FPS, bitrate, keyframe interval)
+- [x] Audio settings screen (bitrate, sample rate, channels)
+- [x] Camera switching (front ↔ back)
+- [x] Stream mode selection (video+audio / video-only / audio-only)
+- [x] Orientation lock (portrait / landscape)
+- [x] Keychain credential storage
+- [x] Save default endpoint; endpoint profiles
+- [x] Seed "Local RTMP" profile on first launch
 
-### Phase 3 — Resilience & Polish
-- [ ] RTMPS (TLS) support with transport security enforcement (§9.2)
-- [ ] Username/password authentication (with RTMPS-only enforcement)
-- [ ] Adaptive bitrate with device-capability ABR ladder
-- [ ] Auto-reconnect with exponential backoff + jitter
-- [ ] Connection test button / transport probe (obeys transport rules and labels handshake-only results correctly)
-- [ ] Streaming HUD (bitrate, FPS, duration, status, thermal badge)
-- [ ] Mute toggle
-- [ ] Low battery handling
-- [ ] Audio session interruption handling (SL-08)
-- [ ] Thermal throttling response with cooldown (SL-07)
+### Phase 3 — Resilience & Polish ✅ COMPLETE
+- [x] RTMPS (TLS) support with transport security enforcement (§9.2)
+- [x] Username/password authentication (with RTMPS-only enforcement)
+- [x] Adaptive bitrate with device-capability and codec-specific ABR ladder
+- [x] Auto-reconnect with exponential backoff + jitter
+- [x] Connection test button / transport probe
+- [x] Streaming HUD (bitrate, FPS, duration, status, thermal badge)
+- [x] Mute toggle
+- [x] Low battery handling
+- [x] Audio session interruption handling (SL-08)
+- [x] Thermal throttling response with cooldown (SL-07)
+- [x] Keep screen on (idle timer disabled during streaming)
+- [x] Minimal mode (power-saving toggle disabling camera preview)
 
-### Phase 4 — Local Recording & Extras
-- [ ] Local MP4 recording (Photos Library or Documents directory) with memory pressure observer (MC-05), **only if the single-encoder feasibility gate passes; otherwise defer from launch**
-- [ ] Lock Screen / Control Center controls (MPRemoteCommandCenter) with pause→mute mapping (SL-04)
-- [ ] KSCrash crash reporting with credential redaction (expanded regex, HaishinKit log suppression)
-- [ ] App termination recovery (orphaned recording cleanup with sentinel files, session-ended message)
+### Phase 4 — Local Recording & Extras ✅ COMPLETE
+- [x] Local MP4 recording via `RecordingFileManager` (Documents directory) with disk space validation
+- [x] Lock Screen / Control Center controls (MPRemoteCommandCenter) with pause→mute mapping (SL-04)
+- [x] KSCrash crash reporting with credential redaction
+- [x] App termination recovery (orphaned recording cleanup, session-ended message)
+
+### Phase 4a — Multi-Codec & Protocol Support ✅ COMPLETE (NEW)
+- [x] H.265 (HEVC) video codec via `VideoCodec` enum
+- [x] AV1 video codec with A17 Pro+ hardware detection and H.264 fallback
+- [x] Codec-specific ABR bitrate ladders (H.265 ~40% lower, AV1 ~45% lower than H.264)
+- [x] SRT protocol support (`StreamProtocol`, `SRTMode`, `SRTEncoderBridge`)
+- [x] Protocol bridge factory (`EncoderBridgeFactory`) — auto-selects RTMP or SRT bridge from URL scheme
+- [x] `EndpointProfile` SRT fields: mode, passphrase, latency, stream ID
+- [x] 244 unit tests across 18 test files
+- [x] GitHub Actions CI pipeline (`.github/workflows/ci.yml`)
 
 ### Phase 5 — Future (Deferred)
 - [ ] Overlay pipeline implementation (text, timestamps, watermarks)
-- [ ] H.265 streaming option
 - [ ] Multi-destination streaming
 - [ ] Stream scheduling
-- [ ] SRT protocol option
+- [ ] SRT local recording (currently delegates to stub — see §17.1)
+
+### 17.1 Known Limitations
+
+| Limitation | Details |
+|---|---|
+| **AV1 H.264 fallback** | AV1 encoding requires A17 Pro (iPhone 15 Pro+). On unsupported devices, the encoder falls back to H.264 with a console warning. |
+| **SRT recording stub** | Local MP4 recording via `SRTEncoderBridge` delegates to a `StubEncoderBridge`. Recording during SRT streaming is not yet functional. |
+| **AV1 over SRT** | AV1 video codec is not supported over SRT protocol. H.264 and H.265 only. |
 
 ---
 

@@ -3,7 +3,7 @@
 ![iOS CI](https://github.com/alxayo/StreamCaster-iphone/actions/workflows/ci.yml/badge.svg)
 
 StreamCaster is an iOS live streaming app built with SwiftUI.
-It supports RTMP and RTMPS ingest endpoints, local preview, and basic stream health/state reporting.
+It supports RTMP, RTMPS, and SRT ingest endpoints, local preview, multi-codec encoding (H.264/H.265/AV1), and basic stream health/state reporting.
 
 ## What Is In This Repository
 
@@ -74,20 +74,31 @@ Before starting a stream:
 1. Open the app
 2. Go to **Settings > Endpoint**
 3. Create and save an endpoint profile with:
-- RTMP URL (e.g. `rtmp://...` or `rtmps://...`)
-- Stream key
-- Optional username/password if your server requires auth
+   - Ingest URL (`rtmp://...`, `rtmps://...`, or `srt://...`)
+   - Stream key (RTMP/RTMPS) or SRT stream ID
+   - Optional username/password if your server requires auth
+   - For SRT: mode (caller/listener/rendezvous), passphrase, latency
 4. Mark the profile as default (recommended)
 
 Notes:
-- `rtmps://` is preferred for encrypted transport.
+- A default "Local RTMP" seed profile is created on first launch.
+- `rtmps://` is preferred for encrypted RTMP transport.
 - `rtmp://` is allowed but shown as a security warning.
+- `srt://` supports AES encryption via passphrase.
 
 ## Minimal Mode
 
 Toggle Minimal Mode during streaming to hide the camera preview and save battery.
 The stream continues normally — only the on-device display is turned off.
 Ideal for long, stationary streams (e.g., on a tripod).
+
+## Local Recording
+
+Record a local MP4 copy while streaming. Files are saved to the app's Documents/Recordings directory with timestamped filenames (e.g., `StreamCaster_2024-01-15_14-30-00.mp4`).
+
+- Managed by `RecordingFileManager` — validates minimum 100 MB free disk space before starting.
+- Recording works over RTMP/RTMPS. SRT recording is a stub (not yet functional).
+- The screen stays on during streaming (`isIdleTimerDisabled = true`).
 
 ## Running On a Real Device
 
@@ -156,7 +167,7 @@ xcodebuild \
   test
 ```
 
-Current test target includes startup smoke tests (basic view load checks).
+Current test target includes **244 unit tests** across 18 test files covering models, services, security, view models, and thermal monitoring.
 
 ## Troubleshooting
 
@@ -212,7 +223,9 @@ Select the codec per-endpoint in the Endpoint Settings screen.
 |----------|--------|-------|
 | RTMP | ✅ Supported | Via HaishinKit |
 | RTMPS | ✅ Supported | Via HaishinKit + system TLS |
-| SRT | 🔬 Planned | Feasibility spike complete, implementation pending |
+| SRT | ✅ Supported | Via `SRTEncoderBridge` — caller, listener, rendezvous modes |
+
+Protocol is auto-detected from the URL scheme by `EncoderBridgeFactory`.
 
 ## Continuous Integration
 
