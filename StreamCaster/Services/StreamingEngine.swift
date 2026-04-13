@@ -163,7 +163,9 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         }
 
         // Step 2: Build the stream configuration from user settings.
-        let config = buildStreamConfig(profileId: profileId)
+        // We pass the profile so the codec selection propagates into the
+        // config, which the ABR system uses for codec-specific bitrate targets.
+        let config = buildStreamConfig(profileId: profileId, profile: profile)
 
         // Step 2b: Create the correct encoder bridge for this profile's protocol.
         // The factory inspects the URL scheme (rtmp:// vs srt://) and returns
@@ -242,6 +244,15 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         let currentTransport = await coordinator.snapshot.transport
         if currentTransport == .idle {
             return
+        }
+
+        // If recording is active, finalize it before disconnecting.
+        // This ensures the MP4 trailer (moov atom) is written properly
+        // so the file isn't corrupted. We do this BEFORE disconnecting
+        // the transport because the recorder needs the encoder pipeline
+        // to still be alive to flush its last frames.
+        if encoderBridge.isRecording {
+            await stopRecording()
         }
 
         // Tell the encoder to stop sending data and disconnect.
@@ -482,7 +493,7 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     /// Build a StreamConfig from user settings and the given profile ID.
     /// This gathers all the settings the user has configured (resolution,
     /// bitrate, etc.) into one convenient struct.
-    private func buildStreamConfig(profileId: String) -> StreamConfig {
+    private func buildStreamConfig(profileId: String, profile: EndpointProfile) -> StreamConfig {
         return StreamConfig(
             profileId: profileId,
             videoEnabled: true,
@@ -494,6 +505,9 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
             audioSampleRate: settingsRepository.getAudioSampleRate(),
             stereo: settingsRepository.isStereo(),
             keyframeIntervalSec: settingsRepository.getKeyframeInterval(),
+            // Pass the codec from the endpoint profile so codec-specific
+            // ABR ladders use the correct bitrate targets for H.264/H.265/AV1.
+            videoCodec: profile.videoCodec,
             abrEnabled: settingsRepository.isAbrEnabled(),
             localRecordingEnabled: settingsRepository.isLocalRecordingEnabled(),
             recordToPhotosLibrary: settingsRepository.getRecordingDestination() == .photosLibrary

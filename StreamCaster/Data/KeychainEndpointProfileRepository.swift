@@ -282,11 +282,19 @@ final class KeychainEndpointProfileRepository: EndpointProfileRepository {
 
     /// A stripped-down version of EndpointProfile that has NO sensitive fields.
     /// This is what we store in UserDefaults (which is NOT encrypted).
+    /// Non-sensitive settings like video codec, SRT mode, and latency are safe
+    /// to store here. Secrets (streamKey, password, srtPassphrase) go in Keychain.
     private struct ProfileSkeleton: Codable {
         let id: String
         var name: String
         var rtmpUrl: String
         var isDefault: Bool
+        // Video codec is not sensitive — safe for UserDefaults
+        var videoCodec: VideoCodec?
+        // SRT fields (non-sensitive ones only — passphrase goes in Keychain)
+        var srtMode: SRTMode?
+        var srtLatencyMs: Int?
+        var srtStreamId: String?
     }
 
     /// Load the array of profile skeletons from UserDefaults.
@@ -324,7 +332,11 @@ final class KeychainEndpointProfileRepository: EndpointProfileRepository {
             id: profile.id,
             name: profile.name,
             rtmpUrl: profile.rtmpUrl,
-            isDefault: profile.isDefault
+            isDefault: profile.isDefault,
+            videoCodec: profile.videoCodec,
+            srtMode: profile.srtMode,
+            srtLatencyMs: profile.srtLatencyMs,
+            srtStreamId: profile.srtStreamId
         )
     }
 
@@ -343,6 +355,8 @@ final class KeychainEndpointProfileRepository: EndpointProfileRepository {
         let streamKey = readString(profileId: skeleton.id, field: "streamKey") ?? ""
         let username = readString(profileId: skeleton.id, field: "username")
         let password = readString(profileId: skeleton.id, field: "password")
+        // SRT passphrase is sensitive (encryption key) — stored in Keychain
+        let srtPassphrase = readString(profileId: skeleton.id, field: "srtPassphrase")
 
         return EndpointProfile(
             id: skeleton.id,
@@ -351,7 +365,12 @@ final class KeychainEndpointProfileRepository: EndpointProfileRepository {
             streamKey: streamKey,
             username: username,
             password: password,
-            isDefault: skeleton.isDefault
+            isDefault: skeleton.isDefault,
+            videoCodec: skeleton.videoCodec ?? .h264,
+            srtMode: skeleton.srtMode ?? .caller,
+            srtPassphrase: srtPassphrase,
+            srtLatencyMs: skeleton.srtLatencyMs ?? 120,
+            srtStreamId: skeleton.srtStreamId
         )
     }
 
@@ -372,6 +391,13 @@ final class KeychainEndpointProfileRepository: EndpointProfileRepository {
         } else {
             try KeychainHelper.delete(key: keychainKey(profileId: profile.id, field: "password"))
         }
+
+        // SRT passphrase is an encryption key — must be stored securely in Keychain.
+        if let srtPassphrase = profile.srtPassphrase, !srtPassphrase.isEmpty {
+            try saveString(srtPassphrase, profileId: profile.id, field: "srtPassphrase")
+        } else {
+            try KeychainHelper.delete(key: keychainKey(profileId: profile.id, field: "srtPassphrase"))
+        }
     }
 
     /// Remove all Keychain entries for a profile.
@@ -379,6 +405,7 @@ final class KeychainEndpointProfileRepository: EndpointProfileRepository {
         try KeychainHelper.delete(key: keychainKey(profileId: profileId, field: "streamKey"))
         try KeychainHelper.delete(key: keychainKey(profileId: profileId, field: "username"))
         try KeychainHelper.delete(key: keychainKey(profileId: profileId, field: "password"))
+        try KeychainHelper.delete(key: keychainKey(profileId: profileId, field: "srtPassphrase"))
     }
 
     /// Helper: Save a String to the Keychain by converting it to UTF-8 Data.
