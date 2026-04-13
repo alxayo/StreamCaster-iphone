@@ -56,7 +56,11 @@ final class HaishinKitEncoderBridge: EncoderBridge {
     init() {
         #if canImport(HaishinKit) && canImport(RTMPHaishinKit)
         Task {
+            // Wire the mixer → stream pipeline and start the capture session.
+            // startRunning() must be called so the mixer begins forwarding
+            // camera/microphone frames to its outputs (stream + preview).
             await mixer.addOutput(stream)
+            await mixer.startRunning()
         }
         #endif
     }
@@ -291,15 +295,22 @@ final class HaishinKitEncoderBridge: EncoderBridge {
             return
         }
 
+        // Remove any previously attached preview view from the mixer.
         if let existing = previewView {
             Task {
-                await stream.removeOutput(existing)
+                await mixer.removeOutput(existing)
             }
         }
 
         previewView = mthkView
+
+        // Add the preview as a MIXER output (not a stream output).
+        // The mixer sends raw camera frames directly to the preview view,
+        // which works regardless of whether the RTMP stream is connected.
+        // Using stream.addOutput() only works for playback (receiving
+        // remote video) — not for publishing (sending camera video).
         Task {
-            await stream.addOutput(mthkView)
+            await mixer.addOutput(mthkView)
         }
         #endif
     }
@@ -311,7 +322,7 @@ final class HaishinKitEncoderBridge: EncoderBridge {
         }
         previewView = nil
         Task {
-            await stream.removeOutput(existing)
+            await mixer.removeOutput(existing)
         }
         #endif
     }
@@ -326,6 +337,10 @@ final class HaishinKitEncoderBridge: EncoderBridge {
         }
         detachPreview()
         disconnect()
+        // Stop the mixer's capture session to release camera/mic resources.
+        Task {
+            await mixer.stopRunning()
+        }
         #endif
         fallback.release()
     }

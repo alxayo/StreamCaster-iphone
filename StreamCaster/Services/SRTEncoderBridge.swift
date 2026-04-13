@@ -157,8 +157,11 @@ final class SRTEncoderBridge: EncoderBridge {
         #if canImport(HaishinKit) && canImport(SRTHaishinKit)
         // Wire the mixer's output to the SRT stream. This tells the mixer
         // "send all encoded audio/video frames to this stream."
+        // startRunning() must be called so the mixer begins forwarding
+        // camera/microphone frames to its outputs (stream + preview).
         Task {
             await mixer.addOutput(stream)
+            await mixer.startRunning()
         }
         #endif
     }
@@ -551,7 +554,8 @@ final class SRTEncoderBridge: EncoderBridge {
     ///
     /// The `MTHKView` is a HaishinKit view that renders the camera preview
     /// using Metal for high performance. We add it as an output of the
-    /// stream so it receives the same frames being sent to the SRT server.
+    /// mixer so it receives raw camera frames directly — this works
+    /// regardless of whether the SRT stream is connected or publishing.
     ///
     /// - Parameter view: Must be an `MTHKView` instance.
     func attachPreview(_ view: UIView) {
@@ -565,21 +569,24 @@ final class SRTEncoderBridge: EncoderBridge {
             return
         }
 
-        // Remove any previously attached preview view.
+        // Remove any previously attached preview view from the mixer.
         if let existing = previewView {
             Task {
-                await stream.removeOutput(existing)
+                await mixer.removeOutput(existing)
             }
         }
 
         previewView = mthkView
+
+        // Add the preview as a MIXER output (not a stream output).
+        // The mixer sends raw camera frames directly to the preview view.
         Task {
-            await stream.addOutput(mthkView)
+            await mixer.addOutput(mthkView)
         }
         #endif
     }
 
-    /// Remove the camera preview from the stream's output list.
+    /// Remove the camera preview from the mixer's output list.
     func detachPreview() {
         #if canImport(HaishinKit) && canImport(SRTHaishinKit)
         guard let existing = previewView else {
@@ -587,7 +594,7 @@ final class SRTEncoderBridge: EncoderBridge {
         }
         previewView = nil
         Task {
-            await stream.removeOutput(existing)
+            await mixer.removeOutput(existing)
         }
         #endif
     }
@@ -602,6 +609,10 @@ final class SRTEncoderBridge: EncoderBridge {
         #if canImport(HaishinKit) && canImport(SRTHaishinKit)
         detachPreview()
         disconnect()
+        // Stop the mixer's capture session to release camera/mic resources.
+        Task {
+            await mixer.stopRunning()
+        }
         #endif
         fallback.release()
     }

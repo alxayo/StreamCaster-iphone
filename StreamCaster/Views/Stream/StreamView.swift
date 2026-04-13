@@ -336,6 +336,10 @@ struct StreamView: View {
         // out of scope for the initial implementation.
         .disabled(!viewModel.isStreaming)
         .opacity(viewModel.isStreaming ? 1.0 : 0.4)
+        // Help text explains why the button is dimmed when not streaming.
+        .help(viewModel.isStreaming ? "Stop recording" : "Start streaming first to record")
+        .accessibilityLabel(viewModel.isRecording ? "Stop recording" : "Record locally")
+        .accessibilityHint(viewModel.isStreaming ? "" : "Start streaming first to enable recording")
     }
 
     // MARK: - Camera Switch Button
