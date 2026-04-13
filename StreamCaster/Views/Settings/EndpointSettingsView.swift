@@ -27,6 +27,113 @@ struct EndpointSettingsView: View {
     var body: some View {
         Form {
             // ──────────────────────────────────────────────
+            // MARK: - Success / Error Banners
+            // ──────────────────────────────────────────────
+            // Shown at the very top so the user always sees feedback
+            // after saving, updating, or deleting a profile.
+            if let successMessage = viewModel.saveSuccessMessage {
+                Section {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                        Text(successMessage)
+                            .foregroundColor(.green)
+                            .fontWeight(.medium)
+                    }
+                }
+                .listRowBackground(Color.green.opacity(0.1))
+            }
+
+            if let error = viewModel.saveError {
+                Section {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.red)
+                        Text(error)
+                            .foregroundColor(.red)
+                    }
+                }
+                .listRowBackground(Color.red.opacity(0.1))
+            }
+
+            // ──────────────────────────────────────────────
+            // MARK: - Saved Profiles List (top for visibility)
+            // ──────────────────────────────────────────────
+            if !viewModel.profiles.isEmpty {
+                Section {
+                    ForEach(viewModel.profiles) { profile in
+                        // Each row: tap to load, shows star if default
+                        Button {
+                            viewModel.selectProfile(profile)
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    // Profile name in bold
+                                    Text(profile.name)
+                                        .font(.body)
+                                        .foregroundColor(.primary)
+
+                                    // Show the RTMP URL below in smaller text
+                                    Text(profile.rtmpUrl)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
+                                }
+
+                                Spacer()
+
+                                // Star icon marks the default profile
+                                if profile.isDefault {
+                                    Image(systemName: "star.fill")
+                                        .foregroundColor(.yellow)
+                                        .accessibilityLabel("Default profile")
+                                }
+
+                                // Highlight the currently-selected profile
+                                if viewModel.selectedProfileId == profile.id {
+                                    Image(systemName: "checkmark")
+                                        .foregroundColor(.accentColor)
+                                }
+                            }
+                        }
+                    }
+                    // Swipe-to-delete on each profile row
+                    .onDelete { indexSet in
+                        for index in indexSet {
+                            viewModel.deleteProfile(id: viewModel.profiles[index].id)
+                        }
+                    }
+                } header: {
+                    Text("Saved Profiles")
+                } footer: {
+                    Text("Tap a profile to edit it. Swipe left to delete.")
+                }
+
+                // ──────────────────────────────────────────
+                // MARK: - Profile Actions
+                // ──────────────────────────────────────────
+                if let selectedId = viewModel.selectedProfileId {
+                    Section {
+                        // Set the selected profile as the default
+                        Button {
+                            viewModel.setDefault(id: selectedId)
+                        } label: {
+                            Label("Set as Default", systemImage: "star")
+                        }
+
+                        // Delete the selected profile
+                        Button(role: .destructive) {
+                            viewModel.deleteProfile(id: selectedId)
+                        } label: {
+                            Label("Delete Profile", systemImage: "trash")
+                        }
+                    } header: {
+                        Text("Profile Actions")
+                    }
+                }
+            }
+
+            // ──────────────────────────────────────────────
             // MARK: - Endpoint Details Section
             // ──────────────────────────────────────────────
             Section {
@@ -241,14 +348,6 @@ struct EndpointSettingsView: View {
                 }
             }
 
-            // Show save errors if any
-            if let error = viewModel.saveError {
-                Section {
-                    Text(error)
-                        .foregroundColor(.red)
-                }
-            }
-
             // ──────────────────────────────────────────────
             // MARK: - Test Connection
             // ──────────────────────────────────────────────
@@ -286,83 +385,6 @@ struct EndpointSettingsView: View {
                 Text("Connection")
             } footer: {
                 Text("Tests transport connectivity only — does not verify stream key or publish ability.")
-            }
-
-            // ──────────────────────────────────────────────
-            // MARK: - Saved Profiles List
-            // ──────────────────────────────────────────────
-            if !viewModel.profiles.isEmpty {
-                Section {
-                    ForEach(viewModel.profiles) { profile in
-                        // Each row: tap to load, shows star if default
-                        Button {
-                            viewModel.selectProfile(profile)
-                        } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    // Profile name in bold
-                                    Text(profile.name)
-                                        .font(.body)
-                                        .foregroundColor(.primary)
-
-                                    // Show the RTMP URL below in smaller text
-                                    Text(profile.rtmpUrl)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(1)
-                                }
-
-                                Spacer()
-
-                                // Star icon marks the default profile
-                                if profile.isDefault {
-                                    Image(systemName: "star.fill")
-                                        .foregroundColor(.yellow)
-                                        .accessibilityLabel("Default profile")
-                                }
-
-                                // Highlight the currently-selected profile
-                                if viewModel.selectedProfileId == profile.id {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(.accentColor)
-                                }
-                            }
-                        }
-                    }
-                    // Swipe-to-delete on each profile row
-                    .onDelete { indexSet in
-                        for index in indexSet {
-                            viewModel.deleteProfile(id: viewModel.profiles[index].id)
-                        }
-                    }
-                } header: {
-                    Text("Saved Profiles")
-                } footer: {
-                    Text("Tap a profile to edit it. Swipe left to delete.")
-                }
-
-                // ──────────────────────────────────────────
-                // MARK: - Profile Actions
-                // ──────────────────────────────────────────
-                if let selectedId = viewModel.selectedProfileId {
-                    Section {
-                        // Set the selected profile as the default
-                        Button {
-                            viewModel.setDefault(id: selectedId)
-                        } label: {
-                            Label("Set as Default", systemImage: "star")
-                        }
-
-                        // Delete the selected profile
-                        Button(role: .destructive) {
-                            viewModel.deleteProfile(id: selectedId)
-                        } label: {
-                            Label("Delete Profile", systemImage: "trash")
-                        }
-                    } header: {
-                        Text("Profile Actions")
-                    }
-                }
             }
         }
         .navigationTitle("Endpoint")

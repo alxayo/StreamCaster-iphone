@@ -96,6 +96,9 @@ class EndpointSettingsViewModel: ObservableObject {
     /// Human-readable error message shown if a save/delete fails.
     @Published var saveError: String?
 
+    /// Confirmation message shown briefly after a successful save or update.
+    @Published var saveSuccessMessage: String?
+
     /// The result message from the last connection test (nil = no test run yet).
     @Published var testConnectionResult: String?
 
@@ -181,8 +184,19 @@ class EndpointSettingsViewModel: ObservableObject {
             // After saving, select this profile so the user sees it highlighted.
             selectedProfileId = id
 
+            // Show a brief success message so the user knows the save worked.
+            let isUpdate = profiles.contains(where: { $0.id == id })
+            saveSuccessMessage = isUpdate ? "Profile updated ✓" : "Profile saved ✓"
+
             // Refresh the list to reflect the change.
             loadProfiles()
+
+            // Auto-dismiss the success message after 3 seconds.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+                if self?.saveSuccessMessage != nil {
+                    self?.saveSuccessMessage = nil
+                }
+            }
         } catch {
             saveError = "Failed to save profile: \(error.localizedDescription)"
         }
@@ -204,6 +218,12 @@ class EndpointSettingsViewModel: ObservableObject {
             }
 
             loadProfiles()
+            saveSuccessMessage = "Profile deleted ✓"
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+                if self?.saveSuccessMessage != nil {
+                    self?.saveSuccessMessage = nil
+                }
+            }
         } catch {
             saveError = "Failed to delete profile: \(error.localizedDescription)"
         }
@@ -219,6 +239,12 @@ class EndpointSettingsViewModel: ObservableObject {
         do {
             try repository.setDefault(profile)
             loadProfiles()
+            saveSuccessMessage = "Default profile set ✓"
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+                if self?.saveSuccessMessage != nil {
+                    self?.saveSuccessMessage = nil
+                }
+            }
         } catch {
             saveError = "Failed to set default: \(error.localizedDescription)"
         }
