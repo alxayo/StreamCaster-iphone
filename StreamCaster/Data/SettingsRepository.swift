@@ -73,12 +73,28 @@ protocol SettingsRepository {
     /// Save the default camera position.
     func setDefaultCameraPosition(_ position: AVCaptureDevice.Position)
 
+    /// Get the specific camera device (lens + position) to use by default.
+    /// Returns `nil` if no specific device has been saved (legacy behavior).
+    func getDefaultCameraDevice() -> CameraDevice?
+
+    /// Save the default camera device.
+    func setDefaultCameraDevice(_ device: CameraDevice)
+
     /// Get the preferred capture orientation (as the raw `Int` value of
     /// `AVCaptureVideoOrientation` or a custom enum). Defaults to landscape.
     func getPreferredOrientation() -> Int
 
     /// Save the preferred capture orientation.
     func setPreferredOrientation(_ orientation: Int)
+
+    // MARK: Stabilization Settings
+
+    /// Get the preferred video stabilization mode.
+    /// Returns `.off` if never set.
+    func getVideoStabilizationMode() -> AVCaptureVideoStabilizationMode
+
+    /// Save the preferred video stabilization mode.
+    func setVideoStabilizationMode(_ mode: AVCaptureVideoStabilizationMode)
 
     // MARK: Reconnect Settings
 

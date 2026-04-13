@@ -105,9 +105,8 @@ actor EncoderController {
     /// Only one restart can happen at a time.
     private var isRestarting: Bool = false
 
-    /// The camera position to reattach after a restart.
-    /// Defaults to `.back` — the rear camera.
-    private var cameraPosition: AVCaptureDevice.Position = .back
+    /// The camera device to reattach after a restart.
+    private var cameraDevice: CameraDevice?
 
     // MARK: - Init
 
@@ -296,10 +295,10 @@ actor EncoderController {
 
     // MARK: - Public: Camera Position
 
-    /// Update the camera position used during restarts.
-    /// Call this when the user switches between front and back cameras.
-    func setCameraPosition(_ position: AVCaptureDevice.Position) {
-        cameraPosition = position
+    /// Update the camera device used during restarts.
+    /// Call this when the user switches cameras.
+    func setCameraDevice(_ device: CameraDevice?) {
+        cameraDevice = device
     }
 
     // MARK: - Private Helpers
@@ -348,7 +347,7 @@ actor EncoderController {
         )
 
         // Step 4: Reattach camera with the current camera position
-        encoderBridge.attachCamera(position: cameraPosition)
+        encoderBridge.attachCamera(device: cameraDevice?.avCaptureDevice())
 
         // Step 5: Request a keyframe (IDR frame) so new viewers can decode
         await encoderBridge.requestKeyFrame()

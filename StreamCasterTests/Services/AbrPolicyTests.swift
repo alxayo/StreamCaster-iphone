@@ -2,6 +2,7 @@ import XCTest
 import UIKit
 import AVFoundation
 import CoreMedia
+import Combine
 @testable import StreamCaster
 
 // MARK: - AbrPolicyTests
@@ -206,7 +207,9 @@ private final class StubEncoderBridgeForTests: EncoderBridge {
     // MARK: - Camera (no-ops)
 
     /// No-op: we don't need a real camera in tests.
-    func attachCamera(position: AVCaptureDevice.Position) {}
+    func attachCamera(device: AVCaptureDevice?) {}
+
+    func setVideoStabilization(_ mode: AVCaptureVideoStabilizationMode) {}
 
     /// No-op: nothing to detach in tests.
     func detachCamera() {}
@@ -276,4 +279,11 @@ private final class StubEncoderBridgeForTests: EncoderBridge {
 
     /// No-op: nothing to detach in tests.
     func detachPreview() {}
+
+    // MARK: - Stats (no-op)
+
+    @Published var latestStats = StreamStats()
+    var statsPublisher: AnyPublisher<StreamStats, Never> {
+        $latestStats.eraseToAnyPublisher()
+    }
 }

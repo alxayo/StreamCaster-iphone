@@ -251,9 +251,24 @@ final class StreamViewModel: ObservableObject {
         }
     }
 
-    /// Switch between front and back camera.
+    /// Cycle to the next camera (alternating front/back pattern).
     func switchCamera() {
         engine.switchCamera()
+    }
+
+    /// Switch to a specific camera device (from long-press menu).
+    func switchToCamera(_ device: CameraDevice) {
+        engine.switchToCamera(device)
+    }
+
+    /// All camera devices available on this hardware.
+    var availableCameraDevices: [CameraDevice] {
+        engine.availableCameraDevices
+    }
+
+    /// The camera currently in use.
+    var currentCameraDevice: CameraDevice? {
+        engine.currentCameraDevice
     }
 
     /// Clear the currently visible error from the UI.

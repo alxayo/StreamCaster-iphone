@@ -83,9 +83,23 @@ class SettingsViewModel: ObservableObject {
     @Published var defaultCameraPosition: AVCaptureDevice.Position {
         didSet {
             settingsRepo.setDefaultCameraPosition(defaultCameraPosition)
-            // Resolution/FPS support can differ per camera, so refresh
             updateAvailableResolutions()
         }
+    }
+
+    /// The specific camera device to use (e.g., Back Ultra Wide).
+    @Published var selectedCameraDevice: CameraDevice {
+        didSet {
+            settingsRepo.setDefaultCameraDevice(selectedCameraDevice)
+            // Keep legacy position in sync
+            settingsRepo.setDefaultCameraPosition(selectedCameraDevice.position)
+            defaultCameraPosition = selectedCameraDevice.position
+        }
+    }
+
+    /// Video stabilization mode (Off / Standard / Cinematic / Cinematic Extended).
+    @Published var videoStabilizationMode: AVCaptureVideoStabilizationMode {
+        didSet { settingsRepo.setVideoStabilizationMode(videoStabilizationMode) }
     }
 
     /// "landscape" or "portrait" — locks orientation while streaming.
@@ -149,6 +163,12 @@ class SettingsViewModel: ObservableObject {
     /// Camera positions physically present on this device.
     @Published var availableCameras: [AVCaptureDevice.Position] = []
 
+    /// All camera devices (multi-lens) available on this hardware.
+    @Published var availableCameraDevices: [CameraDevice] = []
+
+    /// Stabilization modes the current camera supports.
+    @Published var availableStabilizationModes: [AVCaptureVideoStabilizationMode] = []
+
     // ──────────────────────────────────────────────────────────
     // MARK: - Dependencies
     // ──────────────────────────────────────────────────────────
@@ -188,6 +208,18 @@ class SettingsViewModel: ObservableObject {
         self.keyframeIntervalSec = settingsRepo.getKeyframeInterval()
         self.isAbrEnabled = settingsRepo.isAbrEnabled()
         self.defaultCameraPosition = settingsRepo.getDefaultCameraPosition()
+
+        // Load camera device — fall back to wide-angle if none saved
+        let allDevices = capabilityQuery.availableCameraDevices()
+        if let saved = settingsRepo.getDefaultCameraDevice(),
+           allDevices.contains(saved) {
+            self.selectedCameraDevice = saved
+        } else {
+            self.selectedCameraDevice = allDevices.first ?? CameraDevice.defaultBackWide
+        }
+
+        self.videoStabilizationMode = settingsRepo.getVideoStabilizationMode()
+
         self.reconnectMaxAttempts = settingsRepo.getReconnectMaxAttempts()
         self.lowBatteryThreshold = settingsRepo.getLowBatteryThreshold()
         self.startInMinimalMode = settingsRepo.isStartInMinimalMode()
@@ -201,6 +233,10 @@ class SettingsViewModel: ObservableObject {
 
         // Query the device hardware for available cameras and resolutions
         self.availableCameras = capabilityQuery.availableCameras()
+        self.availableCameraDevices = allDevices
+        self.availableStabilizationModes = capabilityQuery.supportedStabilizationModes(
+            for: selectedCameraDevice
+        )
         loadAvailableOptions()
     }
 
@@ -276,5 +312,18 @@ class SettingsViewModel: ObservableObject {
     /// Int.max is shown as "Unlimited".
     func reconnectLabel(for value: Int) -> String {
         return value == Int.max ? "Unlimited" : "\(value)"
+    }
+
+    /// Human-readable label for a stabilization mode.
+    func stabilizationLabel(for mode: AVCaptureVideoStabilizationMode) -> String {
+        switch mode {
+        case .off: return "Off"
+        case .standard: return "Standard"
+        case .cinematic: return "Cinematic"
+        case .cinematicExtended: return "Cinematic Extended"
+        case .previewOptimized: return "Preview Optimized"
+        case .auto: return "Auto"
+        @unknown default: return "Unknown"
+        }
     }
 }

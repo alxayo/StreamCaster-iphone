@@ -23,9 +23,9 @@ protocol EncoderBridge: AnyObject {
 
     // MARK: Camera
 
-    /// Start capturing video from the specified camera.
-    /// - Parameter position: `.front` or `.back`.
-    func attachCamera(position: AVCaptureDevice.Position)
+    /// Start capturing video from the specified camera device.
+    /// - Parameter device: The `AVCaptureDevice` to use, or `nil` to detach.
+    func attachCamera(device: AVCaptureDevice?)
 
     /// Stop video capture and release the camera hardware.
     func detachCamera()
@@ -172,6 +172,12 @@ protocol EncoderBridge: AnyObject {
     /// roughly once per second while streaming.
     var statsPublisher: AnyPublisher<StreamStats, Never> { get }
 
+    // MARK: Video Stabilization
+
+    /// Apply a video stabilization mode to the active camera connection.
+    /// Call after `attachCamera(device:)` so a capture session exists.
+    func setVideoStabilization(_ mode: AVCaptureVideoStabilizationMode)
+
     // MARK: Cleanup
 
     /// Release all resources: stop capture, close connections, free encoders.
@@ -193,5 +199,10 @@ extension EncoderBridge {
         streamId: String?
     ) {
         // No-op — only SRTEncoderBridge implements this.
+    }
+
+    /// Default no-op — only bridges with AVCaptureSession access implement this.
+    func setVideoStabilization(_ mode: AVCaptureVideoStabilizationMode) {
+        // No-op by default.
     }
 }

@@ -75,6 +75,12 @@ private class MockSettingsRepository: SettingsRepository {
     func getDefaultCameraPosition() -> AVCaptureDevice.Position { .back }
     func setDefaultCameraPosition(_ position: AVCaptureDevice.Position) {}
 
+    func getDefaultCameraDevice() -> CameraDevice? { nil }
+    func setDefaultCameraDevice(_ device: CameraDevice) {}
+
+    func getVideoStabilizationMode() -> AVCaptureVideoStabilizationMode { .off }
+    func setVideoStabilizationMode(_ mode: AVCaptureVideoStabilizationMode) {}
+
     /// Default orientation: landscape (1) — standard for video streaming.
     func getPreferredOrientation() -> Int { 1 }
     func setPreferredOrientation(_ orientation: Int) {}
@@ -134,6 +140,18 @@ private class MockDeviceCapabilityQuery: DeviceCapabilityQuery {
     /// Pretend the device has both front and back cameras.
     func availableCameras() -> [AVCaptureDevice.Position] {
         [.back, .front]
+    }
+
+    func availableCameraDevices() -> [CameraDevice] {
+        [
+            CameraDevice(deviceType: .builtInWideAngleCamera, position: .back, localizedName: "Wide"),
+            CameraDevice(deviceType: .builtInUltraWideCamera, position: .back, localizedName: "Ultra Wide"),
+            CameraDevice(deviceType: .builtInWideAngleCamera, position: .front, localizedName: "Front"),
+        ]
+    }
+
+    func supportedStabilizationModes(for camera: CameraDevice) -> [AVCaptureVideoStabilizationMode] {
+        [.off, .standard, .cinematic]
     }
 
     /// Pretend this is a high-end device that can handle 1080p60.

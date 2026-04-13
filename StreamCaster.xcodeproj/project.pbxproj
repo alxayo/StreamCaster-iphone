@@ -70,6 +70,7 @@
 		C355F30A835D5B19D38EEA06 /* SettingsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = E25454D40EC3C39127B2CDA8 /* SettingsRepository.swift */; };
 		C99CE057845B3C23396DCCC4 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A580CEA9A86A6A8CF1EA215 /* AppDelegate.swift */; };
 		CC78039259789569B8B8158D /* StreamStatsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C8B9279EFE96E37DFCAF924 /* StreamStatsTests.swift */; };
+		CE7489BBCDF3B07EBD44DEFF /* CameraDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = F79C277B6E5D172605DD57AB /* CameraDevice.swift */; };
 		CFA108A40108C58894CCEC0F /* RecordingFileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C2BD6DA420DBEA54A2E1D43 /* RecordingFileManager.swift */; };
 		D0F2C486BB05D0907572E9A8 /* EncoderController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6485A87613ED34E3D50B9BF9 /* EncoderController.swift */; };
 		D374827D97649A5BCBFC922C /* DeviceCapabilityQuery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E89C221132B3B8558444345 /* DeviceCapabilityQuery.swift */; };
@@ -104,7 +105,7 @@
 		0309A18382A398A4AF607FA3 /* CredentialSanitizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialSanitizerTests.swift; sourceTree = "<group>"; };
 		03B49335D60DCD1FE3EF170C /* TransportSecurityValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportSecurityValidatorTests.swift; sourceTree = "<group>"; };
 		094E8E14046E5C62E1A8F019 /* ConnectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManager.swift; sourceTree = "<group>"; };
-		0A476A3EA608FAECAB88A41F /* StreamCaster.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StreamCaster.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0A476A3EA608FAECAB88A41F /* StreamCaster.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = StreamCaster.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0BD1F34BD7BCFE4DE2CF3B19 /* StreamProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamProtocol.swift; sourceTree = "<group>"; };
 		0CCF64AEF65B6A704C0A87AE /* AbrLadderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AbrLadderTests.swift; sourceTree = "<group>"; };
 		0E8AC8F7ECE36F0185EA5D32 /* ThermalMonitorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThermalMonitorTests.swift; sourceTree = "<group>"; };
@@ -157,7 +158,7 @@
 		B495DF2EA234982E444E8606 /* StreamState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamState.swift; sourceTree = "<group>"; };
 		B6C9FAC4D966EF3BBA1D9940 /* GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsView.swift; sourceTree = "<group>"; };
 		B9B5110095E37AFB2563FAD9 /* ConnectionManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManagerTests.swift; sourceTree = "<group>"; };
-		C28929E27957DE0344AB330F /* StreamCasterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = StreamCasterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C28929E27957DE0344AB330F /* StreamCasterTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = StreamCasterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C6255ABEE7F4F0404BAA83F7 /* StreamStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamStateTests.swift; sourceTree = "<group>"; };
 		CA83263409C45621184A1B55 /* EncoderBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncoderBridge.swift; sourceTree = "<group>"; };
 		CC59A2B431FD6BBED5CADD06 /* RedactingLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedactingLogger.swift; sourceTree = "<group>"; };
@@ -177,6 +178,7 @@
 		F2B20D6B9E861804AEF3A278 /* SettingsRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsRootView.swift; sourceTree = "<group>"; };
 		F397F934CC629D4C1F893DDC /* StreamViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamViewModelTests.swift; sourceTree = "<group>"; };
 		F760DFAEBC73BA50E58E8EDD /* OrientationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrientationManager.swift; sourceTree = "<group>"; };
+		F79C277B6E5D172605DD57AB /* CameraDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraDevice.swift; sourceTree = "<group>"; };
 		F91B95F234077144BEE90C9F /* StubEncoderBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StubEncoderBridge.swift; sourceTree = "<group>"; };
 		F995F8AB1E0482CE1667E146 /* ThermalMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThermalMonitor.swift; sourceTree = "<group>"; };
 		FB71EB9D6F09973C9AC3A150 /* AudioSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSessionManager.swift; sourceTree = "<group>"; };
@@ -335,6 +337,7 @@
 			isa = PBXGroup;
 			children = (
 				D37FF8FEAAF4C4A52FF612AC /* AVDeviceCapabilityQuery.swift */,
+				F79C277B6E5D172605DD57AB /* CameraDevice.swift */,
 				2E89C221132B3B8558444345 /* DeviceCapabilityQuery.swift */,
 			);
 			path = Camera;
@@ -516,7 +519,9 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2630;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
 			};
 			buildConfigurationList = 12D3DF4B3EA937DC8EC923AB /* Build configuration list for PBXProject "StreamCaster" */;
 			developmentRegion = en;
@@ -554,6 +559,7 @@
 				0C5F78C16EF60115D2174494 /* AudioSessionManager.swift in Sources */,
 				6EDDA7D6C44706DBBCFEF1EE /* AudioSessionManagerProtocol.swift in Sources */,
 				825FCF3BC8DF0E8AAEBD8AB7 /* BatteryMonitor.swift in Sources */,
+				CE7489BBCDF3B07EBD44DEFF /* CameraDevice.swift in Sources */,
 				B4A2D4BC86291C8D93D6D73C /* CameraInterruptionHandler.swift in Sources */,
 				4A0FB6EF523ACDDEA6FC36DD /* CameraPreviewView.swift in Sources */,
 				AA185F2DDED2B8BA2ACC2D38 /* ConnectionManager.swift in Sources */,
@@ -700,7 +706,6 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -714,7 +719,6 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
@@ -728,7 +732,6 @@
 				CODE_SIGN_ENTITLEMENTS = StreamCaster/StreamCaster.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 6QPP8SFQ23;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = StreamCaster/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
@@ -781,7 +784,6 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -802,7 +804,6 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -816,7 +817,6 @@
 				CODE_SIGN_ENTITLEMENTS = StreamCaster/StreamCaster.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 6QPP8SFQ23;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = StreamCaster/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;

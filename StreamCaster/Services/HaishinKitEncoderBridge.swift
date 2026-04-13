@@ -118,13 +118,8 @@ final class HaishinKitEncoderBridge: EncoderBridge {
         #endif
     }
 
-    func attachCamera(position: AVCaptureDevice.Position) {
+    func attachCamera(device: AVCaptureDevice?) {
         #if canImport(HaishinKit) && canImport(RTMPHaishinKit)
-        let device = AVCaptureDevice.default(
-            .builtInWideAngleCamera,
-            for: .video,
-            position: position
-        )
         Task {
             do {
                 try await mixer.attachVideo(device)
@@ -133,7 +128,21 @@ final class HaishinKitEncoderBridge: EncoderBridge {
             }
         }
         #else
-        fallback.attachCamera(position: position)
+        fallback.attachCamera(device: device)
+        #endif
+    }
+
+    func setVideoStabilization(_ mode: AVCaptureVideoStabilizationMode) {
+        #if canImport(HaishinKit) && canImport(RTMPHaishinKit)
+        Task {
+            do {
+                try await mixer.configuration(video: 0) { unit in
+                    unit.preferredVideoStabilizationMode = mode
+                }
+            } catch {
+                print("[HaishinKitEncoderBridge] Failed to set stabilization: \(error)")
+            }
+        }
         #endif
     }
 

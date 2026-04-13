@@ -1,6 +1,7 @@
 import XCTest
 import UIKit
 import AVFoundation
+import Combine
 @testable import StreamCaster
 
 // =============================================================================
@@ -47,11 +48,11 @@ private final class MockEncoderBridge: EncoderBridge, @unchecked Sendable {
     /// The last bitrate passed to `setVideoSettings(...)`.
     var lastVideoBitrateKbps: Int?
 
-    /// How many times `attachCamera(position:)` was called.
+    /// How many times `attachCamera(device:)` was called.
     var attachCameraCallCount = 0
 
-    /// The last camera position passed to `attachCamera(position:)`.
-    var lastCameraPosition: AVCaptureDevice.Position?
+    /// The last device passed to `attachCamera(device:)`.
+    var lastCameraDevice: AVCaptureDevice?
 
     /// How many times `detachCamera()` was called.
     var detachCameraCallCount = 0
@@ -60,26 +61,26 @@ private final class MockEncoderBridge: EncoderBridge, @unchecked Sendable {
     var requestKeyFrameCallCount = 0
 
     /// An ordered log of every method call, stored as plain strings.
-    /// This lets tests verify the *sequence* of calls, not just the counts.
-    /// Example: ["detachCamera", "setVideoSettings", "attachCamera", "requestKeyFrame"]
     var callLog: [String] = []
 
     // -------------------------------------------------------------------------
     // MARK: Stubbed Properties
     // -------------------------------------------------------------------------
 
-    /// Always returns `false` — we're not really connected to anything.
     var isConnected: Bool = false
 
     // -------------------------------------------------------------------------
     // MARK: Camera (no-op implementations)
     // -------------------------------------------------------------------------
 
-    /// Records the call and position; does nothing else.
-    func attachCamera(position: AVCaptureDevice.Position) {
+    func attachCamera(device: AVCaptureDevice?) {
         attachCameraCallCount += 1
-        lastCameraPosition = position
+        lastCameraDevice = device
         callLog.append("attachCamera")
+    }
+
+    func setVideoStabilization(_ mode: AVCaptureVideoStabilizationMode) {
+        callLog.append("setVideoStabilization")
     }
 
     /// Records the call; does nothing else.
@@ -191,6 +192,16 @@ private final class MockEncoderBridge: EncoderBridge, @unchecked Sendable {
 
     func detachPreview() {
         callLog.append("detachPreview")
+    }
+
+    // -------------------------------------------------------------------------
+    // MARK: Stats (no-op implementation)
+    // -------------------------------------------------------------------------
+
+    @Published var latestStats = StreamStats()
+
+    var statsPublisher: AnyPublisher<StreamStats, Never> {
+        $latestStats.eraseToAnyPublisher()
     }
 }
 

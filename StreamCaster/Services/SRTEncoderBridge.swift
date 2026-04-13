@@ -246,14 +246,8 @@ final class SRTEncoderBridge: EncoderBridge {
     ///
     /// - Parameter position: `.front` for the selfie camera, `.back` for
     ///   the rear camera.
-    func attachCamera(position: AVCaptureDevice.Position) {
+    func attachCamera(device: AVCaptureDevice?) {
         #if canImport(HaishinKit) && canImport(SRTHaishinKit)
-        // Find the built-in wide-angle camera for the requested position.
-        let device = AVCaptureDevice.default(
-            .builtInWideAngleCamera,
-            for: .video,
-            position: position
-        )
         Task {
             do {
                 try await mixer.attachVideo(device)
@@ -262,7 +256,7 @@ final class SRTEncoderBridge: EncoderBridge {
             }
         }
         #else
-        fallback.attachCamera(position: position)
+        fallback.attachCamera(device: device)
         #endif
     }
 

@@ -26,6 +26,13 @@ protocol DeviceCapabilityQuery {
     /// Most iPhones have `.front` and `.back`; some iPods may only have one.
     func availableCameras() -> [AVCaptureDevice.Position]
 
+    /// Returns all individual camera devices on this device, including
+    /// ultra-wide and telephoto lenses on supported hardware.
+    func availableCameraDevices() -> [CameraDevice]
+
+    /// Returns the stabilization modes supported by the given camera device.
+    func supportedStabilizationModes(for camera: CameraDevice) -> [AVCaptureVideoStabilizationMode]
+
     /// A quick check for whether this device is considered "Tier 1" (flagship).
     /// Tier 1 devices can handle 1080p60 + local recording simultaneously.
     /// Older or lower-end devices should default to lower settings.

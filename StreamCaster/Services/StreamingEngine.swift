@@ -103,6 +103,15 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     /// audio hardware reflects the snapshot's mute state.
     private let audioSessionManager: AudioSessionManagerProtocol
 
+    /// Queries hardware for available cameras, stabilization modes, etc.
+    private let capabilityQuery: DeviceCapabilityQuery
+
+    /// All camera devices on this hardware, ordered for cycling.
+    private(set) var availableCameraDevices: [CameraDevice] = []
+
+    /// The camera currently in use (persisted across sessions).
+    private(set) var currentCameraDevice: CameraDevice?
+
     // MARK: - Init
 
     /// Private init prevents anyone from creating a second engine.
@@ -116,6 +125,8 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         self.profileRepository = container.endpointProfileRepository
         self.settingsRepository = container.settingsRepository
         self.audioSessionManager = container.audioSessionManager
+        self.capabilityQuery = container.deviceCapabilityQuery
+        loadCameraDevices()
     }
 
     /// Internal init used for testing — lets us inject mock dependencies.
@@ -123,12 +134,15 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         encoderBridge: EncoderBridge,
         profileRepository: EndpointProfileRepository,
         settingsRepository: SettingsRepository,
-        audioSessionManager: AudioSessionManagerProtocol
+        audioSessionManager: AudioSessionManagerProtocol,
+        capabilityQuery: DeviceCapabilityQuery? = nil
     ) {
         self.encoderBridge = encoderBridge
         self.profileRepository = profileRepository
         self.settingsRepository = settingsRepository
         self.audioSessionManager = audioSessionManager
+        self.capabilityQuery = capabilityQuery ?? AVDeviceCapabilityQuery()
+        loadCameraDevices()
     }
 
     // MARK: - Stream Lifecycle
@@ -236,7 +250,8 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
 
         // Step 5: Attach camera and audio.
         if config.videoEnabled {
-            encoderBridge.attachCamera(position: settingsRepository.getDefaultCameraPosition())
+            let device = resolveCurrentCamera()
+            attachCameraWithStabilization(device)
         }
         if config.audioEnabled {
             encoderBridge.attachAudio()
@@ -358,29 +373,33 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     /// Works both before streaming (preview) and during a live stream.
     func switchCamera() {
         Task {
-            // Only switch if video is currently active. If video is off
-            // (e.g., audio-only mode), there's no camera to switch.
             let snapshot = await coordinator.snapshot
             guard snapshot.media.videoActive else { return }
 
-            // Step 1: Figure out which camera we're currently using.
-            let previousPosition = settingsRepository.getDefaultCameraPosition()
+            guard let current = currentCameraDevice else { return }
+            let next = nextCameraInCycle(after: current)
 
-            // Step 2: Calculate the opposite camera position.
-            // If we're on front, switch to back. If back, switch to front.
-            let newPosition: AVCaptureDevice.Position =
-                (previousPosition == .front) ? .back : .front
-
-            // Step 3: Detach the current camera first.
-            // This cleanly releases the hardware before we grab a new camera.
             encoderBridge.detachCamera()
+            attachCameraWithStabilization(next)
 
-            // Step 4: Attach the new camera.
-            encoderBridge.attachCamera(position: newPosition)
+            currentCameraDevice = next
+            settingsRepository.setDefaultCameraDevice(next)
+            settingsRepository.setDefaultCameraPosition(next.position)
+        }
+    }
 
-            // Step 5: Save the new position so it persists across app launches
-            // and so other parts of the engine know which camera is active.
-            settingsRepository.setDefaultCameraPosition(newPosition)
+    /// Switch to a specific camera device (used by long-press menu).
+    func switchToCamera(_ device: CameraDevice) {
+        Task {
+            let snapshot = await coordinator.snapshot
+            guard snapshot.media.videoActive else { return }
+
+            encoderBridge.detachCamera()
+            attachCameraWithStabilization(device)
+
+            currentCameraDevice = device
+            settingsRepository.setDefaultCameraDevice(device)
+            settingsRepository.setDefaultCameraPosition(device.position)
         }
     }
 
@@ -403,9 +422,8 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
 
             // Tell the encoder bridge to attach/detach hardware accordingly.
             if videoEnabled {
-                encoderBridge.attachCamera(
-                    position: settingsRepository.getDefaultCameraPosition()
-                )
+                let device = resolveCurrentCamera()
+                attachCameraWithStabilization(device)
             } else {
                 encoderBridge.detachCamera()
             }
@@ -515,7 +533,8 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
 
         // Show a live preview even before streaming starts.
         if shouldManageIdlePreviewCamera {
-            encoderBridge.attachCamera(position: settingsRepository.getDefaultCameraPosition())
+            let device = resolveCurrentCamera()
+            attachCameraWithStabilization(device)
         }
     }
 
@@ -541,6 +560,68 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     }
 
     // MARK: - Private Helpers
+
+    // MARK: Camera Helpers
+
+    /// Populate the camera device list from hardware and restore persisted choice.
+    private func loadCameraDevices() {
+        availableCameraDevices = capabilityQuery.availableCameraDevices()
+        // Restore persisted camera, falling back to first available
+        if let saved = settingsRepository.getDefaultCameraDevice(),
+           availableCameraDevices.contains(saved) {
+            currentCameraDevice = saved
+        } else if let first = availableCameraDevices.first {
+            currentCameraDevice = first
+        }
+    }
+
+    /// Return the current camera device, falling back to a sensible default.
+    private func resolveCurrentCamera() -> CameraDevice {
+        if let device = currentCameraDevice { return device }
+        let fallback = availableCameraDevices.first ?? CameraDevice.defaultBackWide
+        currentCameraDevice = fallback
+        return fallback
+    }
+
+    /// Alternate front/back cycling order:
+    /// Back Wide → Front → Back Ultra Wide → Front → Back Telephoto → Front → …
+    private func nextCameraInCycle(after current: CameraDevice) -> CameraDevice {
+        let backs = availableCameraDevices.filter { $0.position == .back }
+        let fronts = availableCameraDevices.filter { $0.position == .front }
+
+        if current.position == .front {
+            // Switch to next back camera after the last-used back camera
+            if let lastBackIndex = backs.firstIndex(where: { $0 == lastUsedBackCamera }),
+               lastBackIndex + 1 < backs.count {
+                let next = backs[lastBackIndex + 1]
+                lastUsedBackCamera = next
+                return next
+            }
+            // Wrap around to first back camera
+            if let first = backs.first {
+                lastUsedBackCamera = first
+                return first
+            }
+            // No back cameras — stay on front
+            return current
+        } else {
+            // Currently on a back camera — switch to front
+            lastUsedBackCamera = current
+            return fronts.first ?? current
+        }
+    }
+
+    /// Tracks which back camera was last used for cycling purposes.
+    private var lastUsedBackCamera: CameraDevice?
+
+    /// Attach a camera and apply the user's stabilization preference.
+    private func attachCameraWithStabilization(_ device: CameraDevice) {
+        encoderBridge.attachCamera(device: device.avCaptureDevice())
+        let stabMode = settingsRepository.getVideoStabilizationMode()
+        if stabMode != .off {
+            encoderBridge.setVideoStabilization(stabMode)
+        }
+    }
 
     /// Build a StreamConfig from user settings and the given profile ID.
     /// This gathers all the settings the user has configured (resolution,

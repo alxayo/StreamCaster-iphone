@@ -36,7 +36,9 @@ final class UserDefaultsSettingsRepository: SettingsRepository {
         static let keyframeInterval    = "settings.keyframeInterval"
         static let abrEnabled          = "settings.abrEnabled"
         static let cameraPosition      = "settings.cameraPosition"
+        static let cameraDevice        = "settings.cameraDevice"
         static let orientation         = "settings.orientation"
+        static let videoStabilization  = "settings.videoStabilization"
         static let reconnectMaxAttempts = "settings.reconnectMaxAttempts"
         static let lowBatteryThreshold = "settings.lowBatteryThreshold"
         static let localRecording      = "settings.localRecording"
@@ -210,6 +212,19 @@ final class UserDefaultsSettingsRepository: SettingsRepository {
         defaults.set(position.rawValue, forKey: Keys.cameraPosition)
     }
 
+    func getDefaultCameraDevice() -> CameraDevice? {
+        guard let key = defaults.string(forKey: Keys.cameraDevice) else {
+            return nil
+        }
+        return CameraDevice.from(persistenceKey: key)
+    }
+
+    func setDefaultCameraDevice(_ device: CameraDevice) {
+        defaults.set(device.persistenceKey, forKey: Keys.cameraDevice)
+        // Also update the legacy position key for backward compatibility
+        defaults.set(device.position.rawValue, forKey: Keys.cameraPosition)
+    }
+
     func getPreferredOrientation() -> Int {
         return hasValue(forKey: Keys.orientation)
             ? defaults.integer(forKey: Keys.orientation)
@@ -218,6 +233,22 @@ final class UserDefaultsSettingsRepository: SettingsRepository {
 
     func setPreferredOrientation(_ orientation: Int) {
         defaults.set(orientation, forKey: Keys.orientation)
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // MARK: - Stabilization Settings
+    // ──────────────────────────────────────────────────────────────
+
+    func getVideoStabilizationMode() -> AVCaptureVideoStabilizationMode {
+        guard hasValue(forKey: Keys.videoStabilization) else {
+            return .off
+        }
+        let rawValue = defaults.integer(forKey: Keys.videoStabilization)
+        return AVCaptureVideoStabilizationMode(rawValue: rawValue) ?? .off
+    }
+
+    func setVideoStabilizationMode(_ mode: AVCaptureVideoStabilizationMode) {
+        defaults.set(mode.rawValue, forKey: Keys.videoStabilization)
     }
 
     // ──────────────────────────────────────────────────────────────

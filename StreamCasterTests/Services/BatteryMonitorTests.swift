@@ -106,6 +106,12 @@ private class MockSettingsRepository: SettingsRepository {
     func getDefaultCameraPosition() -> AVCaptureDevice.Position { defaultCameraPosition }
     func setDefaultCameraPosition(_ position: AVCaptureDevice.Position) { self.defaultCameraPosition = position }
 
+    func getDefaultCameraDevice() -> CameraDevice? { nil }
+    func setDefaultCameraDevice(_ device: CameraDevice) {}
+
+    func getVideoStabilizationMode() -> AVCaptureVideoStabilizationMode { .off }
+    func setVideoStabilizationMode(_ mode: AVCaptureVideoStabilizationMode) {}
+
     func getPreferredOrientation() -> Int { preferredOrientation }
     func setPreferredOrientation(_ orientation: Int) { self.preferredOrientation = orientation }
 

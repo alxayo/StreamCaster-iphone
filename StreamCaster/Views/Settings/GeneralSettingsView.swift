@@ -11,6 +11,7 @@
 //   • About: app version and build info
 
 import SwiftUI
+import AVFoundation
 
 /// A settings screen for camera, orientation, network, battery,
 /// recording, and app-info preferences.
@@ -29,10 +30,19 @@ struct GeneralSettingsView: View {
             // MARK: - Camera Section
             // ──────────────────────────────────────────────
             Section {
-                Picker("Default Camera", selection: $viewModel.defaultCameraPosition) {
-                    ForEach(viewModel.availableCameras, id: \.self) { position in
-                        Text(viewModel.cameraLabel(for: position))
-                            .tag(position)
+                Picker("Default Camera", selection: $viewModel.selectedCameraDevice) {
+                    ForEach(viewModel.availableCameraDevices) { device in
+                        Text(device.localizedName)
+                            .tag(device)
+                    }
+                }
+
+                if !viewModel.availableStabilizationModes.isEmpty {
+                    Picker("Video Stabilization", selection: $viewModel.videoStabilizationMode) {
+                        ForEach(viewModel.availableStabilizationModes, id: \.rawValue) { mode in
+                            Text(viewModel.stabilizationLabel(for: mode))
+                                .tag(mode)
+                        }
                     }
                 }
             } header: {

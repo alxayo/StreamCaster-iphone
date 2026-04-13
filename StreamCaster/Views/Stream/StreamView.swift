@@ -386,10 +386,20 @@ struct StreamView: View {
 
     // MARK: - Camera Switch Button
 
-    /// Switches between the front and back camera.
+    /// Tap to cycle cameras; long-press for a menu of all available cameras.
     private var cameraSwitchButton: some View {
-        Button {
-            viewModel.switchCamera()
+        Menu {
+            ForEach(viewModel.availableCameraDevices) { device in
+                Button {
+                    viewModel.switchToCamera(device)
+                } label: {
+                    if device == viewModel.currentCameraDevice {
+                        Label(device.localizedName, systemImage: "checkmark")
+                    } else {
+                        Text(device.localizedName)
+                    }
+                }
+            }
         } label: {
             Image(systemName: "camera.rotate.fill")
                 .font(.system(size: 20))
@@ -399,8 +409,9 @@ struct StreamView: View {
                     Circle()
                         .fill(Color.white.opacity(0.15))
                 )
+        } primaryAction: {
+            viewModel.switchCamera()
         }
-        // Disable camera switching while connecting to avoid glitches
         .disabled(viewModel.isConnecting)
     }
 

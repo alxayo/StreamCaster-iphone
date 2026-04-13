@@ -61,8 +61,8 @@ final class AVDeviceCapabilityQuery: DeviceCapabilityQuery {
     /// Key = a string like "1280x720-back", Value = array of FPS ints.
     private var cachedFrameRates: [String: [Int]] = [:]
 
-    /// Cached list of camera positions present on this device.
-    private var cachedCameras: [AVCaptureDevice.Position]?
+    /// Cached list of all camera devices (including ultra-wide, telephoto).
+    private var cachedCameraDevices: [CameraDevice]?
 
     /// Cached result of the Tier 1 device check.
     private var cachedIsTier1: Bool?
@@ -73,26 +73,51 @@ final class AVDeviceCapabilityQuery: DeviceCapabilityQuery {
 
     /// Returns which cameras (front, back, etc.) exist on this device.
     func availableCameras() -> [AVCaptureDevice.Position] {
-        // Return cached result if we already queried
-        if let cached = cachedCameras {
+        // Derive from the richer camera device list
+        let devices = availableCameraDevices()
+        let positions = Array(Set(devices.map { $0.position }))
+            .sorted { $0.rawValue < $1.rawValue }
+        return positions
+    }
+
+    /// Returns all individual camera devices on this device, including
+    /// ultra-wide and telephoto lenses on supported hardware.
+    func availableCameraDevices() -> [CameraDevice] {
+        if let cached = cachedCameraDevices {
             return cached
         }
 
-        // Use DiscoverySession to find all wide-angle cameras.
-        // Wide-angle is the "normal" camera on every iPhone.
+        let deviceTypes: [AVCaptureDevice.DeviceType] = [
+            .builtInWideAngleCamera,
+            .builtInUltraWideCamera,
+            .builtInTelephotoCamera
+        ]
+
         let discoverySession = AVCaptureDevice.DiscoverySession(
-            deviceTypes: [.builtInWideAngleCamera],
+            deviceTypes: deviceTypes,
             mediaType: .video,
-            position: .unspecified  // Find cameras at any position
+            position: .unspecified
         )
 
-        // Pull the position (.front or .back) from each found device.
-        // Use a Set first to remove duplicates, then sort for consistency.
-        let positions = Array(Set(discoverySession.devices.map { $0.position }))
-            .sorted { $0.rawValue < $1.rawValue }
+        let devices = discoverySession.devices.map { CameraDevice.from($0) }
+        cachedCameraDevices = devices
+        return devices
+    }
 
-        cachedCameras = positions
-        return positions
+    /// Returns the stabilization modes supported by the given camera device.
+    func supportedStabilizationModes(for camera: CameraDevice) -> [AVCaptureVideoStabilizationMode] {
+        guard let avDevice = camera.avCaptureDevice() else { return [] }
+
+        let allModes: [AVCaptureVideoStabilizationMode] = [
+            .standard,
+            .cinematic,
+            .cinematicExtended
+        ]
+
+        // Check the active format's supported modes.
+        // If no active format yet, check the first available format.
+        let format = avDevice.activeFormat
+        return allModes.filter { format.isVideoStabilizationModeSupported($0) }
     }
 
     /// Returns the standard streaming resolutions that a camera actually supports.
