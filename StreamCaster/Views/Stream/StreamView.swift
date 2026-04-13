@@ -49,11 +49,35 @@ struct StreamView: View {
         ZStack {
 
             // ── Layer 1: Camera preview (full screen) ──
-            // The live camera feed fills the entire screen edge to edge.
-            // `.ignoresSafeArea()` makes it extend behind the status bar
-            // and home indicator for a fully immersive look.
-            CameraPreviewView()
-                .ignoresSafeArea()
+            // When minimal mode is ON the preview is replaced with a
+            // dark placeholder to save GPU / battery. The stream itself
+            // keeps sending video — only the on-device display is off.
+            if viewModel.isMinimalMode {
+                // ── Minimal mode: dark background with status info ──
+                // The camera preview is hidden to save battery/GPU power,
+                // but the stream is still sending video to the server.
+                Color.black
+                    .ignoresSafeArea()
+                    .overlay(
+                        VStack(spacing: 16) {
+                            Image(systemName: "moon.fill")
+                                .font(.system(size: 48))
+                                .foregroundColor(.gray)
+                            Text("Minimal Mode")
+                                .font(.headline)
+                                .foregroundColor(.gray)
+                            Text("Preview hidden to save battery")
+                                .font(.caption)
+                                .foregroundColor(.gray.opacity(0.7))
+                        }
+                    )
+            } else {
+                // The live camera feed fills the entire screen edge to edge.
+                // `.ignoresSafeArea()` makes it extend behind the status bar
+                // and home indicator for a fully immersive look.
+                CameraPreviewView()
+                    .ignoresSafeArea()
+            }
 
             // ── Layer 2: Gradient overlays for readability ──
             // Dark gradients at the top and bottom make white text and
@@ -158,6 +182,9 @@ struct StreamView: View {
 
             // Switch between front and back camera
             cameraSwitchButton
+
+            // Toggle minimal mode (hides camera preview to save power)
+            minimalModeButton
 
             // Spacer to balance layout with settings on the left
             Color.clear
@@ -266,6 +293,28 @@ struct StreamView: View {
         }
         // Disable camera switching while connecting to avoid glitches
         .disabled(viewModel.isConnecting)
+    }
+
+    // MARK: - Minimal Mode Button
+
+    /// Toggles minimal mode, which hides the camera preview to save
+    /// battery and GPU resources. A filled moon icon means minimal mode
+    /// is active; an outline moon means the preview is visible.
+    private var minimalModeButton: some View {
+        Button(action: {
+            viewModel.toggleMinimalMode()
+        }) {
+            Image(systemName: viewModel.isMinimalMode ? "moon.fill" : "moon")
+                .font(.title2)
+                .foregroundColor(.white)
+                .padding(12)
+                .background(
+                    Circle()
+                        .fill(viewModel.isMinimalMode
+                            ? Color.blue.opacity(0.6)
+                            : Color.black.opacity(0.4))
+                )
+        }
     }
 
     // MARK: - Settings Button

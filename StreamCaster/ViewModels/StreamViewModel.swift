@@ -68,6 +68,13 @@ final class StreamViewModel: ObservableObject {
     /// Latest user-visible stream error shown in the UI.
     @Published private(set) var errorMessage: String?
 
+    /// When `true`, the camera preview is hidden to save battery and reduce
+    /// GPU usage. The stream continues normally — only the preview display
+    /// is turned off. This is like closing your eyes while the camera records.
+    ///
+    /// Useful for long streams or when the phone is stationary (e.g., on a tripod).
+    @Published var isMinimalMode: Bool = false
+
     // MARK: - Dependencies
 
     /// Reference to the streaming engine — the single source of truth
@@ -196,6 +203,18 @@ final class StreamViewModel: ObservableObject {
     /// Clear the currently visible error from the UI.
     func dismissError() {
         errorMessage = nil
+    }
+
+    /// Toggle minimal mode on or off.
+    ///
+    /// In minimal mode:
+    /// - Camera preview is hidden (saves GPU power)
+    /// - All streaming controls remain visible and functional
+    /// - The stream itself is NOT affected — it keeps sending data
+    ///
+    /// This is a UI-only change. The encoder bridge keeps running normally.
+    func toggleMinimalMode() {
+        isMinimalMode.toggle()
     }
 
     // MARK: - Formatting Helpers

@@ -29,4 +29,9 @@ struct EndpointProfile: Identifiable, Codable, Equatable {
     /// When `true`, this profile is selected automatically when the app launches.
     /// Only one profile should be marked as the default at a time.
     var isDefault: Bool = false
+
+    /// The video codec to use when streaming to this endpoint.
+    /// Defaults to H.264 for maximum compatibility.
+    /// H.265 and AV1 require Enhanced RTMP server support.
+    var videoCodec: VideoCodec = .h264
 }

@@ -112,6 +112,17 @@ class SettingsViewModel: ObservableObject {
     }
 
     // ──────────────────────────────────────────────────────────
+    // MARK: - Published Properties (Power Saving)
+    // ──────────────────────────────────────────────────────────
+
+    /// When `true`, the app launches with minimal mode already active
+    /// (camera preview hidden). Saves battery from the very start of
+    /// a stream — useful for unattended or tripod-mounted setups.
+    @Published var startInMinimalMode: Bool {
+        didSet { settingsRepo.setStartInMinimalMode(startInMinimalMode) }
+    }
+
+    // ──────────────────────────────────────────────────────────
     // MARK: - Published Properties (Recording)
     // ──────────────────────────────────────────────────────────
 
@@ -179,6 +190,7 @@ class SettingsViewModel: ObservableObject {
         self.defaultCameraPosition = settingsRepo.getDefaultCameraPosition()
         self.reconnectMaxAttempts = settingsRepo.getReconnectMaxAttempts()
         self.lowBatteryThreshold = settingsRepo.getLowBatteryThreshold()
+        self.startInMinimalMode = settingsRepo.isStartInMinimalMode()
         self.isLocalRecordingEnabled = settingsRepo.isLocalRecordingEnabled()
         self.recordingDestination = settingsRepo.getRecordingDestination()
 

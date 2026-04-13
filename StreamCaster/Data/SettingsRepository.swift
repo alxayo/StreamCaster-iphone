@@ -110,4 +110,13 @@ protocol SettingsRepository {
 
     /// Save the recording destination preference.
     func setRecordingDestination(_ destination: RecordingDestination)
+
+    // MARK: Minimal Mode Settings
+
+    /// Check whether the app should start in minimal mode (camera preview
+    /// hidden to save battery/GPU). Defaults to `false`.
+    func isStartInMinimalMode() -> Bool
+
+    /// Enable or disable "start in minimal mode" on launch.
+    func setStartInMinimalMode(_ enabled: Bool)
 }

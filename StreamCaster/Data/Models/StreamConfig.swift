@@ -50,6 +50,10 @@ struct StreamConfig: Equatable {
     /// Shorter intervals help viewers join faster but use more bandwidth.
     var keyframeIntervalSec: Int = 2
 
+    /// The video codec to use for encoding. See `VideoCodec` for details.
+    /// This is read from the endpoint profile, not user settings.
+    var videoCodec: VideoCodec = .h264
+
     /// Adaptive Bitrate — when `true`, the app automatically lowers the
     /// video bitrate if the network can't keep up, and raises it when it can.
     var abrEnabled: Bool = true

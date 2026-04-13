@@ -103,6 +103,25 @@ struct GeneralSettingsView: View {
             }
 
             // ──────────────────────────────────────────────
+            // MARK: - Power Saving Section
+            // ──────────────────────────────────────────────
+            Section {
+                // Toggle that controls whether minimal mode is active
+                // when the app first opens. Minimal mode hides the
+                // camera preview to reduce GPU usage and save battery.
+                Toggle(isOn: $viewModel.startInMinimalMode) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Start in Minimal Mode")
+                        Text("Hides camera preview to save battery during streaming")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            } header: {
+                Text("Power Saving")
+            }
+
+            // ──────────────────────────────────────────────
             // MARK: - Recording Section
             // ──────────────────────────────────────────────
             Section {

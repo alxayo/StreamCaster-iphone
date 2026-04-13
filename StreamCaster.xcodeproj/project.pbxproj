@@ -65,6 +65,7 @@
 		F26327DFBE4A76699DD90CEC /* RTMPHaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0D6B43C65B33139570EFFB2E /* RTMPHaishinKit */; };
 		F4B1D99338597DD8824F081D /* Recording in Frameworks */ = {isa = PBXBuildFile; productRef = 00F1FB9C99095F4D0B4A1C9E /* Recording */; };
 		FDFE8A89F3B9A8B7FF53DD43 /* StreamCasterApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84E6C9CB4987EF535589EFA9 /* StreamCasterApp.swift */; };
+		FEF6B3E3D4CCB3241C492517 /* VideoCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B989DCC477E01F70C9E3A15 /* VideoCodec.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -108,6 +109,7 @@
 		83D242E24211C4047321786E /* EndpointProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndpointProfile.swift; sourceTree = "<group>"; };
 		84E6C9CB4987EF535589EFA9 /* StreamCasterApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamCasterApp.swift; sourceTree = "<group>"; };
 		8AB576F49C39AFB58B38A5BD /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
+		8B989DCC477E01F70C9E3A15 /* VideoCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoCodec.swift; sourceTree = "<group>"; };
 		915C54A4DCECF1A4A31F5BC5 /* UserDefaultsSettingsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDefaultsSettingsRepository.swift; sourceTree = "<group>"; };
 		949115F1EDDADA858B8CDD94 /* StreamHudView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamHudView.swift; sourceTree = "<group>"; };
 		954226EDA6C1879FA2AEF32B /* AudioSessionManagerProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSessionManagerProtocol.swift; sourceTree = "<group>"; };
@@ -343,6 +345,7 @@
 				6181BD0F2CE93F54F0514F02 /* StreamConfig.swift */,
 				B495DF2EA234982E444E8606 /* StreamState.swift */,
 				4F2C0F8C7DF49F6A8D8A729A /* StreamStats.swift */,
+				8B989DCC477E01F70C9E3A15 /* VideoCodec.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -494,6 +497,7 @@
 				AF0163121BA6D274240559A4 /* TransportSecurityValidator.swift in Sources */,
 				3A44D355C7A0B577CBFC3EEA /* UserDefaultsSettingsRepository.swift in Sources */,
 				85CDA5B6618BECEF2927FF55 /* VideoAudioSettingsView.swift in Sources */,
+				FEF6B3E3D4CCB3241C492517 /* VideoCodec.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

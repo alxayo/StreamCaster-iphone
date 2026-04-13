@@ -81,6 +81,12 @@ Notes:
 - `rtmps://` is preferred for encrypted transport.
 - `rtmp://` is allowed but shown as a security warning.
 
+## Minimal Mode
+
+Toggle Minimal Mode during streaming to hide the camera preview and save battery.
+The stream continues normally — only the on-device display is turned off.
+Ideal for long, stationary streams (e.g., on a tripod).
+
 ## Running On a Real Device
 
 ### 1. Prepare Signing
@@ -185,6 +191,18 @@ xcodebuild -project StreamCaster.xcodeproj -scheme StreamCaster -destination 'pl
 - Ensure bundle ID is unique for your account if needed
 - Reconnect device and trust developer certificate
 - Clean build folder (`Shift+Cmd+K`) and rebuild
+
+## Video Codec Support
+
+StreamCaster supports three video codecs:
+
+| Codec | Quality | Compatibility | Device Requirement |
+|-------|---------|--------------|-------------------|
+| H.264 | Good | Universal | All iPhones |
+| H.265 (HEVC) | Better (~40% savings) | Enhanced RTMP servers | All iPhones |
+| AV1 | Best (~50% savings) | Enhanced RTMP servers | iPhone 15 Pro+ |
+
+Select the codec per-endpoint in the Endpoint Settings screen.
 
 ## Development Notes
 

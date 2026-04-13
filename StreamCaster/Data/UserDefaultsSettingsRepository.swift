@@ -41,6 +41,7 @@ final class UserDefaultsSettingsRepository: SettingsRepository {
         static let lowBatteryThreshold = "settings.lowBatteryThreshold"
         static let localRecording      = "settings.localRecording"
         static let recordingDestination = "settings.recordingDestination"
+        static let startInMinimalMode  = "settings.startInMinimalMode"
     }
 
     // MARK: - Defaults
@@ -61,6 +62,7 @@ final class UserDefaultsSettingsRepository: SettingsRepository {
         static let lowBatteryThreshold = 5           // 5 %
         static let localRecording      = false
         static let recordingDestination = RecordingDestination.photosLibrary
+        static let startInMinimalMode  = false
     }
 
     // MARK: - Storage
@@ -272,5 +274,19 @@ final class UserDefaultsSettingsRepository: SettingsRepository {
 
     func setRecordingDestination(_ destination: RecordingDestination) {
         defaults.set(destination.rawValue, forKey: Keys.recordingDestination)
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // MARK: - Minimal Mode Settings
+    // ──────────────────────────────────────────────────────────────
+
+    func isStartInMinimalMode() -> Bool {
+        return hasValue(forKey: Keys.startInMinimalMode)
+            ? defaults.bool(forKey: Keys.startInMinimalMode)
+            : Defaults.startInMinimalMode
+    }
+
+    func setStartInMinimalMode(_ enabled: Bool) {
+        defaults.set(enabled, forKey: Keys.startInMinimalMode)
     }
 }
