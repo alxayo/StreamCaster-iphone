@@ -161,7 +161,7 @@ struct StreamView: View {
     /// The bottom row of control buttons.
     ///
     /// LAYOUT:
-    /// [Settings]  [Mute]  [● START/STOP]  [Switch Camera]
+    /// [Settings]  [Mute]  [● START/STOP]  [Record]  [Switch Camera]
     ///
     /// The start/stop button is bigger and centered to make it
     /// the most prominent control.
@@ -180,15 +180,14 @@ struct StreamView: View {
 
             Spacer()
 
+            // Record toggle — saves a local MP4 copy of the stream
+            recordButton
+
             // Switch between front and back camera
             cameraSwitchButton
 
             // Toggle minimal mode (hides camera preview to save power)
             minimalModeButton
-
-            // Spacer to balance layout with settings on the left
-            Color.clear
-                .frame(width: 44, height: 44)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 12)
@@ -273,6 +272,38 @@ struct StreamView: View {
                         .fill(Color.white.opacity(0.15))
                 )
         }
+    }
+
+    // MARK: - Record Button
+
+    /// Toggles local MP4 recording on and off.
+    ///
+    /// - When NOT recording: shows a red circle icon (like a record button)
+    /// - When recording: shows a stop icon with a red background
+    ///
+    /// Recording saves a copy of the stream to the device's Documents
+    /// folder as an MP4 file. The same encoded frames being sent to the
+    /// server are written to disk, so there's minimal extra CPU usage.
+    private var recordButton: some View {
+        Button {
+            viewModel.toggleRecording()
+        } label: {
+            Image(systemName: viewModel.isRecording ? "stop.circle.fill" : "circle.fill")
+                .font(.system(size: 20))
+                .foregroundColor(.red)
+                .frame(width: 44, height: 44)
+                .background(
+                    Circle()
+                        .fill(viewModel.isRecording
+                            ? Color.red.opacity(0.3)
+                            : Color.white.opacity(0.15))
+                )
+        }
+        // Only allow recording while the stream is live.
+        // Recording without streaming could be added later but is
+        // out of scope for the initial implementation.
+        .disabled(!viewModel.isStreaming)
+        .opacity(viewModel.isStreaming ? 1.0 : 0.4)
     }
 
     // MARK: - Camera Switch Button

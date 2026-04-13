@@ -157,6 +157,22 @@ private final class MockEncoderBridge: EncoderBridge, @unchecked Sendable {
     }
 
     // -------------------------------------------------------------------------
+    // MARK: Local Recording (no-op implementations)
+    // -------------------------------------------------------------------------
+
+    var isRecording: Bool = false
+
+    func startRecording(to fileURL: URL) async throws {
+        callLog.append("startRecording")
+    }
+
+    @discardableResult
+    func stopRecording() async throws -> URL? {
+        callLog.append("stopRecording")
+        return nil
+    }
+
+    // -------------------------------------------------------------------------
     // MARK: Cleanup (no-op implementation)
     // -------------------------------------------------------------------------
 

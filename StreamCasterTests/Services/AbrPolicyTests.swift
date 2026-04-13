@@ -251,6 +251,18 @@ private final class StubEncoderBridgeForTests: EncoderBridge {
     /// No-op: nothing to clear in tests.
     func clearSampleBufferTap() {}
 
+    // MARK: - Local Recording (no-ops)
+
+    /// Always false in tests.
+    var isRecording: Bool { false }
+
+    /// No-op: pretends to start recording.
+    func startRecording(to fileURL: URL) async throws {}
+
+    /// No-op: pretends to stop recording.
+    @discardableResult
+    func stopRecording() async throws -> URL? { nil }
+
     // MARK: - Cleanup (no-op)
 
     /// No-op: nothing to release in tests.

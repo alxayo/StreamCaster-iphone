@@ -43,6 +43,21 @@ protocol StreamingEngineProtocol: AnyObject {
     /// - Parameter reason: Why the stream is being stopped (user tap, error, etc.).
     func stopStream(reason: StopReason) async
 
+    // MARK: Local Recording
+
+    /// Start recording the live stream to a local MP4 file.
+    ///
+    /// The engine checks disk space, generates a timestamped filename, and
+    /// tells the encoder bridge to begin writing frames. The recording state
+    /// in the session snapshot is updated automatically.
+    func startRecording() async
+
+    /// Stop the current recording and finalize the MP4 file.
+    ///
+    /// The MP4 trailer is written so the file is playable, and the
+    /// recording state returns to `.off`.
+    func stopRecording() async
+
     // MARK: Media Controls
 
     /// Toggle the microphone mute on/off. When muted, silent audio frames

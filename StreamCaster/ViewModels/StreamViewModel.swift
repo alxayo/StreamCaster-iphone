@@ -65,6 +65,10 @@ final class StreamViewModel: ObservableObject {
     /// `true` when the device is overheating (serious or critical)
     @Published private(set) var showThermalWarning: Bool = false
 
+    /// `true` when local MP4 recording is active.
+    /// The record button uses this to show the correct icon/color.
+    @Published private(set) var isRecording: Bool = false
+
     /// Latest user-visible stream error shown in the UI.
     @Published private(set) var errorMessage: String?
 
@@ -120,6 +124,17 @@ final class StreamViewModel: ObservableObject {
 
                 // Read the mute state from the media snapshot
                 self.isMuted = snapshot.media.audioMuted
+
+                // Map recording state to a simple boolean for the UI.
+                // We consider "starting" and "recording" both as "active"
+                // so the button shows the stop icon immediately.
+                if case .recording = snapshot.recording {
+                    self.isRecording = true
+                } else if case .starting = snapshot.recording {
+                    self.isRecording = true
+                } else {
+                    self.isRecording = false
+                }
 
                 // Generate human-readable status text and color
                 self.statusText = self.buildStatusText(for: snapshot.transport)
@@ -193,6 +208,28 @@ final class StreamViewModel: ObservableObject {
     /// Toggle microphone mute on/off.
     func toggleMute() {
         engine.toggleMute()
+    }
+
+    /// Toggle local MP4 recording on/off.
+    ///
+    /// When starting:
+    ///   1. Checks that enough disk space is available.
+    ///   2. Tells the engine to start recording.
+    ///   3. The engine generates a filename and begins writing frames.
+    ///
+    /// When stopping:
+    ///   1. Tells the engine to finalize the MP4 file.
+    ///   2. The recording state transitions back to `.off`.
+    func toggleRecording() {
+        Task {
+            if isRecording {
+                // Currently recording → stop and finalize the file.
+                await engine.stopRecording()
+            } else {
+                // Not recording → start a new recording.
+                await engine.startRecording()
+            }
+        }
     }
 
     /// Switch between front and back camera.

@@ -91,6 +91,41 @@ protocol EncoderBridge: AnyObject {
     /// Remove the currently registered sample buffer tap.
     func clearSampleBufferTap()
 
+    // MARK: Local Recording
+
+    /// Start recording the stream to a local MP4 file.
+    ///
+    /// The recording captures the same audio and video frames being sent
+    /// to the RTMP server, so there is minimal additional CPU or battery
+    /// overhead — we're simply writing the already-encoded data to a
+    /// second destination (a file instead of the network).
+    ///
+    /// - Parameter fileURL: The local file URL where the MP4 will be saved.
+    ///   The file must **not** already exist, and the parent directory must
+    ///   be writable.
+    /// - Throws: If the file already exists, the format is unsupported, or
+    ///   the underlying writer cannot be created.
+    func startRecording(to fileURL: URL) async throws
+
+    /// Stop the current recording and finalize the MP4 file.
+    ///
+    /// This flushes any buffered frames, writes the MP4 trailer (moov atom),
+    /// and closes the file. The returned URL is the same one passed to
+    /// `startRecording(to:)` — you can use it to move the file, share it,
+    /// or save it to the Photos library.
+    ///
+    /// - Returns: The file URL of the finished recording.
+    /// - Throws: If no recording is in progress or the writer fails to finalize.
+    @discardableResult
+    func stopRecording() async throws -> URL?
+
+    /// Whether a local recording is currently in progress.
+    ///
+    /// This is `true` between a successful `startRecording(to:)` call and
+    /// the completion of `stopRecording()`. Use it to guard UI state and
+    /// prevent starting a second recording.
+    var isRecording: Bool { get }
+
     // MARK: Cleanup
 
     /// Release all resources: stop capture, close connections, free encoders.

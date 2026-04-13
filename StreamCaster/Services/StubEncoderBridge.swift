@@ -102,11 +102,31 @@ final class StubEncoderBridge: EncoderBridge {
         print("[StubEncoderBridge] clearSampleBufferTap()")
     }
 
+    // MARK: - Local Recording
+
+    /// Tracks whether we're pretending to record.
+    private(set) var isRecording: Bool = false
+
+    /// Pretend to start recording. Just logs and flips the flag.
+    func startRecording(to fileURL: URL) async throws {
+        isRecording = true
+        print("[StubEncoderBridge] startRecording(to: \(fileURL.lastPathComponent))")
+    }
+
+    /// Pretend to stop recording. Resets the flag and logs.
+    @discardableResult
+    func stopRecording() async throws -> URL? {
+        isRecording = false
+        print("[StubEncoderBridge] stopRecording()")
+        return nil
+    }
+
     // MARK: - Cleanup
 
     /// Release all resources (in the stub, just reset state and log).
     func release() {
         isConnected = false
+        isRecording = false
         sampleBufferTap = nil
         print("[StubEncoderBridge] release()")
     }

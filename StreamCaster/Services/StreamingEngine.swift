@@ -359,6 +359,91 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         }
     }
 
+    // MARK: - Local Recording
+
+    /// Start recording the live stream to a local MP4 file.
+    ///
+    /// This method:
+    ///   1. Checks that enough disk space is available (≥ 100 MB).
+    ///   2. Generates a timestamped filename in the Recordings directory.
+    ///   3. Transitions the recording state to `.starting`.
+    ///   4. Tells the encoder bridge to begin writing frames to the file.
+    ///   5. Transitions to `.recording` on success, or `.failed` on error.
+    ///
+    /// Recording uses the same encoded frames being sent to the server,
+    /// so there is minimal additional CPU or battery overhead.
+    func startRecording() async {
+        // Step 1: Make sure we have enough disk space.
+        guard RecordingFileManager.hasEnoughDiskSpace() else {
+            let snapshot = await coordinator.updateRecording(
+                .failed(reason: "Not enough disk space to start recording.")
+            )
+            applySnapshot(snapshot)
+            lastErrorMessage = "Not enough disk space to start recording."
+            return
+        }
+
+        // Step 2: Generate a unique filename.
+        let fileURL = RecordingFileManager.generateFilename()
+
+        // Step 3: Transition to .starting state so the UI knows we're setting up.
+        let destination: RecordingDestination = settingsRepository.getRecordingDestination()
+        let startingSnapshot = await coordinator.updateRecording(
+            .starting(destination: destination)
+        )
+        applySnapshot(startingSnapshot)
+
+        // Step 4: Tell the encoder bridge to start writing frames to disk.
+        do {
+            try await encoderBridge.startRecording(to: fileURL)
+
+            // Step 5a: Success — transition to .recording.
+            let recordingSnapshot = await coordinator.updateRecording(
+                .recording(destination: destination)
+            )
+            applySnapshot(recordingSnapshot)
+            print("[StreamingEngine] Recording started → \(fileURL.lastPathComponent)")
+        } catch {
+            // Step 5b: Failed — update state and show error to the user.
+            let failedSnapshot = await coordinator.updateRecording(
+                .failed(reason: error.localizedDescription)
+            )
+            applySnapshot(failedSnapshot)
+            lastErrorMessage = "Failed to start recording: \(error.localizedDescription)"
+            print("[StreamingEngine] Recording failed to start: \(error)")
+        }
+    }
+
+    /// Stop the current recording and finalize the MP4 file.
+    ///
+    /// The recording state transitions through `.finalizing` while the
+    /// MP4 trailer (moov atom) is written, then back to `.off` once complete.
+    func stopRecording() async {
+        // Transition to .finalizing so the UI shows a brief "saving" state.
+        let finalizingSnapshot = await coordinator.updateRecording(.finalizing)
+        applySnapshot(finalizingSnapshot)
+
+        do {
+            let outputURL = try await encoderBridge.stopRecording()
+
+            // Back to .off — recording complete.
+            let offSnapshot = await coordinator.updateRecording(.off)
+            applySnapshot(offSnapshot)
+
+            if let url = outputURL {
+                print("[StreamingEngine] Recording saved → \(url.lastPathComponent)")
+            }
+        } catch {
+            // If finalization fails, mark as failed so the user knows.
+            let failedSnapshot = await coordinator.updateRecording(
+                .failed(reason: error.localizedDescription)
+            )
+            applySnapshot(failedSnapshot)
+            lastErrorMessage = "Failed to stop recording: \(error.localizedDescription)"
+            print("[StreamingEngine] Recording failed to stop: \(error)")
+        }
+    }
+
     // MARK: - Preview
 
     /// Attach a UIView to display the live camera preview.
@@ -631,6 +716,19 @@ private actor StreamingSessionCoordinator {
     /// - Returns: The updated snapshot.
     func updateBackgroundState(_ state: BackgroundState) -> StreamSessionSnapshot {
         snapshot.background = state
+        return snapshot
+    }
+
+    // MARK: - Recording State
+
+    /// Update the local recording state in the session snapshot.
+    ///
+    /// Called by the engine when recording starts, stops, or fails.
+    ///
+    /// - Parameter state: The new recording state.
+    /// - Returns: The updated snapshot with the new recording state.
+    func updateRecording(_ state: RecordingState) -> StreamSessionSnapshot {
+        snapshot.recording = state
         return snapshot
     }
 }
