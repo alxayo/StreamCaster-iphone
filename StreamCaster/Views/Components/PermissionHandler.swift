@@ -152,6 +152,10 @@ class PermissionManager: ObservableObject {
 /// A full-screen view that lists each permission the app needs,
 /// explains WHY it is needed, and lets the user grant access.
 /// If a permission was denied, the user is guided to the Settings app.
+///
+/// Once the required permissions (camera + microphone) are granted,
+/// the view automatically notifies its parent via `onAllRequired` so
+/// the app can transition to the main streaming screen.
 struct PermissionRequestView: View {
 
     /// The shared permission manager that tracks authorization states.
@@ -163,6 +167,17 @@ struct PermissionRequestView: View {
     /// Stores a human-readable name for the permission that was denied,
     /// so the alert message can say e.g. "Camera access was denied."
     @State private var deniedPermissionName = ""
+
+    /// Callback invoked when the required permissions (camera + mic) are
+    /// granted. The parent view uses this to transition to StreamView.
+    var onAllRequired: (() -> Void)?
+
+    /// Whether the two must-have permissions are both granted.
+    /// Photos is optional (only needed for saving recordings).
+    private var requiredPermissionsGranted: Bool {
+        permissionManager.cameraStatus == .granted
+            && permissionManager.microphoneStatus == .granted
+    }
 
     var body: some View {
         NavigationView {
@@ -224,8 +239,39 @@ struct PermissionRequestView: View {
                         }
                     )
                 }
+
+                // -- Continue button (appears when camera + mic are granted) --
+                if requiredPermissionsGranted {
+                    Section {
+                        Button {
+                            onAllRequired?()
+                        } label: {
+                            HStack {
+                                Spacer()
+                                Text("Continue to StreamCaster")
+                                    .fontWeight(.semibold)
+                                Image(systemName: "arrow.right.circle.fill")
+                                Spacer()
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .listRowBackground(Color.clear)
+                    } footer: {
+                        Text("Photos Library access is optional — you can grant it later from Settings.")
+                            .font(.caption2)
+                    }
+                }
             }
             .navigationTitle("Permissions")
+            // Auto-navigate when the required permissions are granted.
+            // Uses a short delay so the user sees the checkmark appear
+            // before the screen transitions.
+            .onChange(of: permissionManager.cameraStatus) { _ in
+                autoNavigateIfReady()
+            }
+            .onChange(of: permissionManager.microphoneStatus) { _ in
+                autoNavigateIfReady()
+            }
             // Refresh statuses when the user returns from the Settings app.
             .onReceive(
                 NotificationCenter.default.publisher(
@@ -268,6 +314,18 @@ struct PermissionRequestView: View {
         case .granted:
             // Nothing to do; permission is already granted.
             break
+        }
+    }
+
+    // MARK: Auto-Navigate
+
+    /// Automatically transitions to StreamView after a short delay
+    /// once both camera and microphone permissions are granted.
+    /// The delay lets the user see the green checkmark animation.
+    private func autoNavigateIfReady() {
+        guard requiredPermissionsGranted else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            onAllRequired?()
         }
     }
 }

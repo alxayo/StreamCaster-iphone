@@ -90,7 +90,11 @@ struct StreamCasterApp: App {
                     StreamView()
                 } else {
                     // Permissions are missing — ask the user to grant them.
-                    PermissionRequestView()
+                    // When the required permissions (camera + mic) are granted,
+                    // the callback re-checks and transitions to StreamView.
+                    PermissionRequestView {
+                        checkRequiredPermissions()
+                    }
                 }
 
                 // ── Security Curtain ──
