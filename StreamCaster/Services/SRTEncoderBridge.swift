@@ -88,6 +88,23 @@ final class SRTEncoderBridge: EncoderBridge {
     /// Defaults to H.264 for maximum compatibility.
     private var configuredCodec: VideoCodec = .h264
 
+    // MARK: - SRT Connection Options
+    //
+    // These are set by `configureSRTOptions()` before `connect()` is called.
+    // They get baked into the SRT URL as query parameters.
+
+    /// SRT connection mode (caller, listener, or rendezvous).
+    private var srtMode: SRTMode = .caller
+
+    /// Optional AES encryption passphrase (10–79 characters).
+    private var srtPassphrase: String?
+
+    /// Buffer latency in milliseconds for jitter resilience.
+    private var srtLatencyMs: Int = 120
+
+    /// Optional stream routing ID (separate from the streamKey-based streamid).
+    private var srtStreamId: String?
+
     // MARK: - Published Properties
 
     /// Whether the SRT connection is currently active.
@@ -158,41 +175,66 @@ final class SRTEncoderBridge: EncoderBridge {
     /// session is created with the correct codec from the start.
     ///
     /// - Parameter codec: The desired video codec (.h264, .h265, or .av1).
-    func configureCodec(_ codec: VideoCodec) {
+    func configureCodec(_ codec: VideoCodec) async {
         configuredCodec = codec
 
         #if canImport(HaishinKit) && canImport(SRTHaishinKit)
-        Task {
-            // Read the current settings so we preserve resolution/bitrate.
-            var settings = await stream.videoSettings
+        // Read the current settings so we preserve resolution/bitrate.
+        var settings = await stream.videoSettings
 
-            switch codec {
-            case .h264:
-                // H.264 Baseline 3.1 — universal support, HaishinKit default.
-                settings.profileLevel = kVTProfileLevel_H264_Baseline_3_1 as String
+        switch codec {
+        case .h264:
+            // H.264 Baseline 3.1 — universal support, HaishinKit default.
+            settings.profileLevel = kVTProfileLevel_H264_Baseline_3_1 as String
 
-            case .h265:
-                // HEVC Main Auto Level — ~40% better compression than H.264.
-                // SRT supports HEVC natively via MPEG-TS, unlike RTMP which
-                // requires Enhanced RTMP for H.265 support.
-                settings.profileLevel = kVTProfileLevel_HEVC_Main_AutoLevel as String
+        case .h265:
+            // HEVC Main Auto Level — ~40% better compression than H.264.
+            // SRT supports HEVC natively via MPEG-TS, unlike RTMP which
+            // requires Enhanced RTMP for H.265 support.
+            settings.profileLevel = kVTProfileLevel_HEVC_Main_AutoLevel as String
 
-            case .av1:
-                // AV1 — best compression, but HaishinKit 2.x does not yet
-                // expose an AV1 format. Fall back to H.264 and log a warning.
-                if codec.isHardwareEncodingAvailable {
-                    print("[SRTEncoderBridge] AV1 requested but HaishinKit does not support AV1 yet. Falling back to H.264.")
-                } else {
-                    print("[SRTEncoderBridge] AV1 hardware encoding not available on this device. Falling back to H.264.")
-                }
-                settings.profileLevel = kVTProfileLevel_H264_Baseline_3_1 as String
+        case .av1:
+            // AV1 — best compression, but HaishinKit 2.x does not yet
+            // expose an AV1 format. Fall back to H.264 and log a warning.
+            if codec.isHardwareEncodingAvailable {
+                print("[SRTEncoderBridge] AV1 requested but HaishinKit does not support AV1 yet. Falling back to H.264.")
+            } else {
+                print("[SRTEncoderBridge] AV1 hardware encoding not available on this device. Falling back to H.264.")
             }
-
-            try? await stream.setVideoSettings(settings)
+            settings.profileLevel = kVTProfileLevel_H264_Baseline_3_1 as String
         }
+
+        try? await stream.setVideoSettings(settings)
         #else
-        fallback.configureCodec(codec)
+        await fallback.configureCodec(codec)
         #endif
+    }
+
+    // MARK: - SRT Options
+
+    /// Configure SRT-specific connection parameters.
+    ///
+    /// These values are stored and then baked into the SRT URL as query
+    /// parameters when `connect(url:streamKey:)` is called.
+    /// This must be called **before** `connect()`.
+    ///
+    /// - Parameters:
+    ///   - mode: Connection mode (caller = connect out, listener = accept in,
+    ///           rendezvous = simultaneous connect for NAT traversal).
+    ///   - passphrase: AES encryption key (10–79 chars). Nil = no encryption.
+    ///   - latencyMs: Jitter buffer in milliseconds. Higher = more resilient
+    ///                but more delay. Default 120ms works for most networks.
+    ///   - streamId: Optional routing ID used by some SRT servers.
+    func configureSRTOptions(
+        mode: SRTMode,
+        passphrase: String?,
+        latencyMs: Int,
+        streamId: String?
+    ) {
+        self.srtMode = mode
+        self.srtPassphrase = passphrase
+        self.srtLatencyMs = latencyMs
+        self.srtStreamId = streamId
     }
 
     // MARK: - Camera
@@ -297,8 +339,17 @@ final class SRTEncoderBridge: EncoderBridge {
         #if canImport(HaishinKit) && canImport(SRTHaishinKit)
         Task {
             do {
-                // Build the full SRT URL with the stream key as `streamid`.
-                let srtURL = Self.buildSRTURL(baseURL: url, streamKey: streamKey)
+                // Build the full SRT URL with connection options and stream key.
+                // Options like latency, passphrase, and mode are baked into
+                // the URL as query parameters (SRT's standard approach).
+                let srtURL = Self.buildSRTURL(
+                    baseURL: url,
+                    streamKey: streamKey,
+                    mode: srtMode,
+                    passphrase: srtPassphrase,
+                    latencyMs: srtLatencyMs,
+                    streamId: srtStreamId
+                )
 
                 // Open the SRT connection. This performs the SRT handshake,
                 // which includes encryption negotiation if a passphrase is set.
@@ -557,48 +608,83 @@ final class SRTEncoderBridge: EncoderBridge {
 
     // MARK: - URL Construction
 
-    /// Build a complete SRT URL by appending the stream key as `streamid`.
+    /// Build a complete SRT URL with connection options and stream routing.
     ///
     /// SRT URLs follow a standard format where connection options are
-    /// passed as query parameters. The stream key is sent as `streamid`,
-    /// which SRT servers (like SRT Relay, Nimble Streamer, etc.) use to
-    /// identify and route the incoming stream.
+    /// passed as query parameters. This method merges:
+    /// - User-configured options (mode, passphrase, latency) from the profile
+    /// - The stream key as `streamid` for server-side routing
+    ///
+    /// Options set in the base URL are preserved; profile-level options are
+    /// added only if not already present in the URL (URL takes precedence).
     ///
     /// ## Examples
     ///
     /// ```
-    /// // Input:  "srt://live.example.com:9000" + "abc123"
-    /// // Output: srt://live.example.com:9000?streamid=abc123
+    /// // Basic: "srt://live.example.com:9000" + key "abc123" + defaults
+    /// // → srt://live.example.com:9000?mode=caller&latency=120&streamid=abc123
     ///
-    /// // Input:  "srt://live.example.com:9000?latency=200" + "abc123"
-    /// // Output: srt://live.example.com:9000?latency=200&streamid=abc123
+    /// // With passphrase:
+    /// // → srt://live.example.com:9000?mode=caller&latency=120&passphrase=secret&streamid=abc123
     /// ```
     ///
     /// - Parameters:
     ///   - baseURL: The SRT server URL (may already contain query params).
     ///   - streamKey: The stream identifier to append as `streamid`.
-    /// - Returns: A `URL` with the stream key appended, or `nil` if the
-    ///   base URL is malformed.
-    static func buildSRTURL(baseURL: String, streamKey: String) -> URL? {
+    ///   - mode: SRT connection mode (caller/listener/rendezvous).
+    ///   - passphrase: Optional AES encryption passphrase.
+    ///   - latencyMs: Buffer latency in milliseconds.
+    ///   - streamId: Optional stream routing ID (overrides streamKey for streamid).
+    /// - Returns: A `URL` with all options applied, or `nil` if malformed.
+    static func buildSRTURL(
+        baseURL: String,
+        streamKey: String,
+        mode: SRTMode = .caller,
+        passphrase: String? = nil,
+        latencyMs: Int = 120,
+        streamId: String? = nil
+    ) -> URL? {
         // URLComponents handles proper URL encoding and query param merging.
         guard var components = URLComponents(string: baseURL) else {
             print("[SRTEncoderBridge] Failed to parse SRT URL: \(baseURL)")
             return nil
         }
 
-        // Start with any existing query items (latency, passphrase, mode, etc.)
-        var queryItems = components.queryItems ?? []
+        // Collect existing query items from the URL. The user may have
+        // already specified options directly in the URL string.
+        var existingItems = components.queryItems ?? []
+        let existingKeys = Set(existingItems.map { $0.name.lowercased() })
 
-        // Append the stream key as `streamid` if it's not empty.
-        // The `streamid` parameter is the SRT equivalent of RTMP's stream key.
-        if !streamKey.isEmpty {
-            queryItems.append(URLQueryItem(name: "streamid", value: streamKey))
+        // Add mode if not already in the URL.
+        // Mode tells the SRT library how to establish the connection.
+        if !existingKeys.contains("mode") {
+            existingItems.append(URLQueryItem(name: "mode", value: mode.rawValue))
         }
 
-        // Only set queryItems if we have any, to avoid adding a trailing "?"
-        // to URLs that have no parameters.
-        if !queryItems.isEmpty {
-            components.queryItems = queryItems
+        // Add latency if not already in the URL.
+        // Latency controls the jitter buffer size in milliseconds.
+        if !existingKeys.contains("latency") {
+            existingItems.append(URLQueryItem(name: "latency", value: String(latencyMs)))
+        }
+
+        // Add passphrase if provided and not already in the URL.
+        // The passphrase enables AES encryption on the SRT connection.
+        if let passphrase, !passphrase.isEmpty, !existingKeys.contains("passphrase") {
+            existingItems.append(URLQueryItem(name: "passphrase", value: passphrase))
+        }
+
+        // Add stream ID. Priority: explicit srtStreamId > streamKey.
+        // The `streamid` param is used by SRT servers for routing.
+        if !existingKeys.contains("streamid") {
+            let effectiveStreamId = streamId ?? (streamKey.isEmpty ? nil : streamKey)
+            if let effectiveStreamId, !effectiveStreamId.isEmpty {
+                existingItems.append(URLQueryItem(name: "streamid", value: effectiveStreamId))
+            }
+        }
+
+        // Only set queryItems if we have any, to avoid a trailing "?".
+        if !existingItems.isEmpty {
+            components.queryItems = existingItems
         }
 
         return components.url

@@ -185,19 +185,16 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         // Detach preview from the old bridge before swapping.
         // The old bridge's mixer/stream still holds a reference to the
         // MTHKView, which would cause a black screen if not released.
-        if let oldBridge = encoderBridge as? HaishinKitEncoderBridge {
-            oldBridge.detachPreview()
-            oldBridge.detachCamera()
-        }
+        encoderBridge.detachPreview()
+        encoderBridge.detachCamera()
 
         self.encoderBridge = EncoderBridgeFactory.makeBridge(for: profile)
 
         // Re-attach the preview view to the NEW bridge so the user sees
         // the live camera feed. Without this, the preview stays wired to
         // the old (now-discarded) bridge and the screen goes black.
-        if let previewView = currentPreviewView,
-           let newBridge = encoderBridge as? HaishinKitEncoderBridge {
-            newBridge.attachPreview(previewView)
+        if let previewView = currentPreviewView {
+            encoderBridge.attachPreview(previewView)
         }
 
         // Step 3: Transition to .connecting state.
@@ -207,7 +204,10 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         // Step 4a: Configure the video codec from the endpoint profile.
         // This must happen BEFORE setVideoSettings / connect so the encoder
         // creates the correct VideoToolbox compression session (H.264 vs HEVC).
-        encoderBridge.configureCodec(profile.videoCodec)
+        // Awaiting ensures the codec change completes before we apply video
+        // settings — without await, the two operations race and the codec
+        // may still be the old one when setVideoSettings runs.
+        await encoderBridge.configureCodec(profile.videoCodec)
 
         // Step 4b: Configure the encoder with the desired video settings.
         do {
@@ -234,7 +234,18 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
             encoderBridge.attachAudio()
         }
 
-        // Step 6: Connect to the streaming server and start publishing.
+        // Step 6: Configure SRT options if this is an SRT endpoint.
+        // This passes the mode, passphrase, latency, and stream ID from the
+        // profile to the bridge so they get baked into the SRT connection URL.
+        // For RTMP bridges this is a no-op (default protocol extension).
+        encoderBridge.configureSRTOptions(
+            mode: profile.srtMode,
+            passphrase: profile.srtPassphrase,
+            latencyMs: profile.srtLatencyMs,
+            streamId: profile.srtStreamId
+        )
+
+        // Step 7: Connect to the streaming server and start publishing.
         // The encoder bridge handles the protocol-specific details:
         // - HaishinKitEncoderBridge: opens an RTMP/RTMPS connection
         // - SRTEncoderBridge: opens an SRT socket connection
@@ -487,12 +498,11 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         // is swapped later (e.g., when startStream creates a new bridge).
         currentPreviewView = view
 
-        let bridge = encoderBridge as? HaishinKitEncoderBridge
-        bridge?.attachPreview(view)
+        encoderBridge.attachPreview(view)
 
         // Show a live preview even before streaming starts.
         if shouldManageIdlePreviewCamera {
-            bridge?.attachCamera(position: settingsRepository.getDefaultCameraPosition())
+            encoderBridge.attachCamera(position: settingsRepository.getDefaultCameraPosition())
         }
     }
 
@@ -500,12 +510,11 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     func detachPreview() {
         currentPreviewView = nil
 
-        let bridge = encoderBridge as? HaishinKitEncoderBridge
-        bridge?.detachPreview()
+        encoderBridge.detachPreview()
 
         // If we're not actively streaming, release the camera when preview closes.
         if shouldManageIdlePreviewCamera {
-            bridge?.detachCamera()
+            encoderBridge.detachCamera()
         }
     }
 

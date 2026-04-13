@@ -1,6 +1,7 @@
 import Foundation
 import AVFoundation
 import CoreMedia
+import UIKit
 
 // MARK: - SampleBufferTap
 /// A closure that receives raw video sample buffers straight from the camera.
@@ -58,10 +59,14 @@ protocol EncoderBridge: AnyObject {
     /// underlying encoder (VideoToolbox) needs to know the codec type when
     /// creating the compression session.
     ///
+    /// This method is `async` because the underlying VideoToolbox session
+    /// setup can block. Callers must `await` it to avoid a race condition
+    /// where `setVideoSettings()` runs before the codec change completes.
+    ///
     /// - Parameter codec: The desired video codec (.h264, .h265, or .av1).
     ///   If the codec isn't available on this device (e.g., AV1 on older
     ///   hardware), the implementation should fall back to H.264.
-    func configureCodec(_ codec: VideoCodec)
+    func configureCodec(_ codec: VideoCodec) async
 
     /// Change the video bitrate on the fly (used by Adaptive Bitrate).
     /// - Parameter kbps: New bitrate in kilobits per second.
@@ -126,9 +131,60 @@ protocol EncoderBridge: AnyObject {
     /// prevent starting a second recording.
     var isRecording: Bool { get }
 
+    // MARK: Preview
+
+    /// Attach a UIView to display the live camera preview.
+    ///
+    /// The view should be an `MTHKView` (Metal-based HaishinKit view).
+    /// The bridge adds it as an output of the media pipeline so it receives
+    /// the same frames being encoded and sent to the server.
+    ///
+    /// - Parameter view: The UIView to render the camera preview into.
+    func attachPreview(_ view: UIView)
+
+    /// Remove the camera preview view from the media pipeline.
+    /// Call this before swapping bridges or when the preview is no longer visible.
+    func detachPreview()
+
+    // MARK: SRT Configuration
+
+    /// Configure SRT-specific connection options.
+    ///
+    /// These options are only meaningful for SRT connections. RTMP bridges
+    /// should ignore this call (the default implementation is a no-op).
+    ///
+    /// - Parameters:
+    ///   - mode: SRT connection mode (caller, listener, or rendezvous).
+    ///   - passphrase: Optional AES encryption passphrase (10–79 characters).
+    ///   - latencyMs: Buffer latency in milliseconds (default 120ms).
+    ///   - streamId: Optional stream routing identifier.
+    func configureSRTOptions(
+        mode: SRTMode,
+        passphrase: String?,
+        latencyMs: Int,
+        streamId: String?
+    )
+
     // MARK: Cleanup
 
     /// Release all resources: stop capture, close connections, free encoders.
     /// Call this when the streaming engine is being torn down.
     func release()
+}
+
+// MARK: - EncoderBridge Default Implementations
+
+/// Default no-op implementations for methods that only apply to specific
+/// bridge types. This avoids forcing every bridge to implement methods
+/// that are irrelevant to their protocol (e.g., RTMP bridges don't need SRT config).
+extension EncoderBridge {
+    /// Default no-op for RTMP bridges — SRT options are irrelevant.
+    func configureSRTOptions(
+        mode: SRTMode,
+        passphrase: String?,
+        latencyMs: Int,
+        streamId: String?
+    ) {
+        // No-op — only SRTEncoderBridge implements this.
+    }
 }

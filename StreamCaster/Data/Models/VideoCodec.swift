@@ -41,7 +41,7 @@ enum VideoCodec: String, Codable, CaseIterable, Equatable {
         switch self {
         case .h264: return "Universal compatibility"
         case .h265: return "Better quality, needs Enhanced RTMP"
-        case .av1: return "Best quality, needs A17 Pro+"
+        case .av1: return "Experimental — falls back to H.264"
         }
     }
 

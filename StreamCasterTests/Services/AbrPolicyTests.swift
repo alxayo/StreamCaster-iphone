@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 import AVFoundation
 import CoreMedia
 @testable import StreamCaster
@@ -232,7 +233,7 @@ private final class StubEncoderBridgeForTests: EncoderBridge {
     // MARK: - Encoder Configuration (no-ops)
 
     /// No-op: codec selection doesn't matter for ABR tests.
-    func configureCodec(_ codec: VideoCodec) {}
+    func configureCodec(_ codec: VideoCodec) async {}
 
     /// No-op: pretends to change the bitrate successfully.
     func setBitrate(_ kbps: Int) async throws {}
@@ -267,4 +268,12 @@ private final class StubEncoderBridgeForTests: EncoderBridge {
 
     /// No-op: nothing to release in tests.
     func release() {}
+
+    // MARK: - Preview (no-ops)
+
+    /// No-op: we don't render previews in tests.
+    func attachPreview(_ view: UIView) {}
+
+    /// No-op: nothing to detach in tests.
+    func detachPreview() {}
 }

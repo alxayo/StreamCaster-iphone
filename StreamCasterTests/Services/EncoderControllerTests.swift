@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 import AVFoundation
 @testable import StreamCaster
 
@@ -116,7 +117,7 @@ private final class MockEncoderBridge: EncoderBridge, @unchecked Sendable {
     // -------------------------------------------------------------------------
 
     /// Records which codec was configured. No-op for mock purposes.
-    func configureCodec(_ codec: VideoCodec) {
+    func configureCodec(_ codec: VideoCodec) async {
         callLog.append("configureCodec")
     }
 
@@ -178,6 +179,18 @@ private final class MockEncoderBridge: EncoderBridge, @unchecked Sendable {
 
     func release() {
         callLog.append("release")
+    }
+
+    // -------------------------------------------------------------------------
+    // MARK: Preview (no-op implementations)
+    // -------------------------------------------------------------------------
+
+    func attachPreview(_ view: UIView) {
+        callLog.append("attachPreview")
+    }
+
+    func detachPreview() {
+        callLog.append("detachPreview")
     }
 }
 

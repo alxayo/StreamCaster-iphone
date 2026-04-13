@@ -1,6 +1,7 @@
 import Foundation
 import AVFoundation
 import CoreMedia
+import UIKit
 
 // MARK: - StubEncoderBridge
 /// A fake implementation of EncoderBridge used during development.
@@ -66,7 +67,7 @@ final class StubEncoderBridge: EncoderBridge {
     // MARK: - Encoder Configuration
 
     /// Pretend to configure the video codec. Logs the selection but does nothing.
-    func configureCodec(_ codec: VideoCodec) {
+    func configureCodec(_ codec: VideoCodec) async {
         print("[StubEncoderBridge] configureCodec(\(codec.displayName))")
     }
 
@@ -129,5 +130,17 @@ final class StubEncoderBridge: EncoderBridge {
         isRecording = false
         sampleBufferTap = nil
         print("[StubEncoderBridge] release()")
+    }
+
+    // MARK: - Preview
+
+    /// Pretend to attach a preview view.
+    func attachPreview(_ view: UIView) {
+        print("[StubEncoderBridge] attachPreview()")
+    }
+
+    /// Pretend to detach the preview view.
+    func detachPreview() {
+        print("[StubEncoderBridge] detachPreview()")
     }
 }
