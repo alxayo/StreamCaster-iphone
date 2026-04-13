@@ -374,7 +374,7 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     func switchCamera() {
         Task {
             let snapshot = await coordinator.snapshot
-            guard snapshot.media.videoActive else { return }
+            guard snapshot.media.videoActive || shouldManageIdlePreviewCamera else { return }
 
             guard let current = currentCameraDevice else { return }
             let next = nextCameraInCycle(after: current)
@@ -392,7 +392,7 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     func switchToCamera(_ device: CameraDevice) {
         Task {
             let snapshot = await coordinator.snapshot
-            guard snapshot.media.videoActive else { return }
+            guard snapshot.media.videoActive || shouldManageIdlePreviewCamera else { return }
 
             encoderBridge.detachCamera()
             attachCameraWithStabilization(device)

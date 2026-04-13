@@ -105,7 +105,7 @@
 		0309A18382A398A4AF607FA3 /* CredentialSanitizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialSanitizerTests.swift; sourceTree = "<group>"; };
 		03B49335D60DCD1FE3EF170C /* TransportSecurityValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportSecurityValidatorTests.swift; sourceTree = "<group>"; };
 		094E8E14046E5C62E1A8F019 /* ConnectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManager.swift; sourceTree = "<group>"; };
-		0A476A3EA608FAECAB88A41F /* StreamCaster.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = StreamCaster.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0A476A3EA608FAECAB88A41F /* StreamCaster.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StreamCaster.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0BD1F34BD7BCFE4DE2CF3B19 /* StreamProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamProtocol.swift; sourceTree = "<group>"; };
 		0CCF64AEF65B6A704C0A87AE /* AbrLadderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AbrLadderTests.swift; sourceTree = "<group>"; };
 		0E8AC8F7ECE36F0185EA5D32 /* ThermalMonitorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThermalMonitorTests.swift; sourceTree = "<group>"; };
@@ -520,8 +520,6 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
-				TargetAttributes = {
-				};
 			};
 			buildConfigurationList = 12D3DF4B3EA937DC8EC923AB /* Build configuration list for PBXProject "StreamCaster" */;
 			developmentRegion = en;
@@ -732,6 +730,7 @@
 				CODE_SIGN_ENTITLEMENTS = StreamCaster/StreamCaster.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6QPP8SFQ23;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = StreamCaster/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
@@ -817,6 +816,7 @@
 				CODE_SIGN_ENTITLEMENTS = StreamCaster/StreamCaster.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6QPP8SFQ23;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = StreamCaster/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
