@@ -34,11 +34,25 @@ struct EndpointSettingsView: View {
                 TextField("Profile Name", text: $viewModel.profileName)
                     .autocorrectionDisabled()
 
-                // RTMP server URL (e.g., "rtmp://ingest.example.com/live")
-                TextField("rtmp://ingest.example.com/live", text: $viewModel.rtmpUrl)
+                // Server URL (e.g., "rtmp://ingest.example.com/live" or "srt://server:port")
+                TextField("rtmp://server/app or srt://server:port", text: $viewModel.rtmpUrl)
                     .keyboardType(.URL)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+
+                // Show detected protocol badge below URL field.
+                // Helps the user confirm which protocol will be used
+                // based on the URL scheme they've entered.
+                if !viewModel.rtmpUrl.isEmpty {
+                    HStack {
+                        Image(systemName: viewModel.detectedProtocol == .srt
+                              ? "bolt.shield"
+                              : "antenna.radiowaves.left.and.right")
+                        Text(viewModel.detectedProtocol.displayName)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
 
                 // Stream key — treated as a secret, shown as dots
                 SecureField("Stream Key", text: $viewModel.streamKey)
@@ -47,7 +61,50 @@ struct EndpointSettingsView: View {
             } header: {
                 Text("Endpoint Details")
             } footer: {
-                Text("Enter the RTMP URL and stream key provided by your streaming platform.")
+                Text("Enter the server URL and stream key provided by your streaming platform.")
+            }
+
+            // ──────────────────────────────────────────────
+            // MARK: - SRT Configuration (shown only for srt:// URLs)
+            // ──────────────────────────────────────────────
+            // This section appears dynamically when the user enters an srt:// URL.
+            // It provides SRT-specific options that don't apply to RTMP connections.
+            if viewModel.detectedProtocol == .srt {
+                Section {
+                    // SRT Mode picker — determines how the SRT socket connects.
+                    // Most users want "Caller" (the phone calls out to a server).
+                    Picker("Connection Mode", selection: $viewModel.srtMode) {
+                        ForEach(SRTMode.allCases, id: \.self) { mode in
+                            VStack(alignment: .leading) {
+                                Text(mode.displayName)
+                                Text(mode.subtitle)
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            .tag(mode)
+                        }
+                    }
+
+                    // Passphrase field — enables AES encryption on the SRT connection.
+                    // Must be 10-79 characters if set; leave empty for no encryption.
+                    SecureField("Passphrase (optional)", text: $viewModel.srtPassphrase)
+
+                    // Latency stepper — controls the SRT receive buffer size.
+                    // Higher values absorb more network jitter but add delay.
+                    // Range: 20ms (aggressive) to 8000ms (very lossy networks).
+                    Stepper("Latency: \(viewModel.srtLatencyMs)ms",
+                            value: $viewModel.srtLatencyMs,
+                            in: 20...8000,
+                            step: 10)
+
+                    // Stream ID — some SRT servers use this to route incoming streams
+                    // to the correct channel or application (similar to RTMP stream key).
+                    TextField("Stream ID (optional)", text: $viewModel.srtStreamId)
+                } header: {
+                    Text("SRT Configuration")
+                } footer: {
+                    Text("SRT is optimized for low-latency streaming over unreliable networks. Caller mode is recommended for most use cases.")
+                }
             }
 
             // ──────────────────────────────────────────────

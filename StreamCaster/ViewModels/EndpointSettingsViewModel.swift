@@ -52,6 +52,30 @@ class EndpointSettingsViewModel: ObservableObject {
     @Published var videoCodec: VideoCodec = .h264
 
     // ──────────────────────────────────────────────────────────
+    // MARK: - Published Properties (SRT Fields)
+    // ──────────────────────────────────────────────────────────
+    // These fields are only relevant when the URL starts with srt://.
+    // They are ignored for RTMP/RTMPS connections.
+
+    /// SRT connection mode — how the SRT socket connects to the server.
+    /// Caller mode is the default and most common for mobile streaming:
+    /// the phone initiates the connection to a remote SRT listener.
+    @Published var srtMode: SRTMode = .caller
+
+    /// SRT encryption passphrase (10-79 characters, or empty for no encryption).
+    /// When set, the SRT connection uses AES encryption to protect the stream.
+    @Published var srtPassphrase: String = ""
+
+    /// SRT latency in milliseconds — buffer for network jitter.
+    /// Higher values = more resilience but more delay.
+    /// Default 120ms is a good balance for most networks.
+    @Published var srtLatencyMs: Int = 120
+
+    /// SRT stream ID — used by some servers to route streams.
+    /// Similar to RTMP's stream key concept but for SRT connections.
+    @Published var srtStreamId: String = ""
+
+    // ──────────────────────────────────────────────────────────
     // MARK: - Published Properties (Profile List)
     // ──────────────────────────────────────────────────────────
 
@@ -80,6 +104,18 @@ class EndpointSettingsViewModel: ObservableObject {
 
     /// `true` while a connection test is in progress (shows a spinner).
     @Published var isTestingConnection: Bool = false
+
+    // ──────────────────────────────────────────────────────────
+    // MARK: - Computed Properties
+    // ──────────────────────────────────────────────────────────
+
+    /// The detected protocol based on the current URL.
+    /// Examines the URL scheme (rtmp://, rtmps://, srt://) to determine
+    /// which protocol the user intends to use. Falls back to RTMP if
+    /// the scheme is not recognized or the URL is empty.
+    var detectedProtocol: StreamProtocol {
+        StreamProtocol.detect(from: rtmpUrl) ?? .rtmp
+    }
 
     // ──────────────────────────────────────────────────────────
     // MARK: - Dependencies
@@ -122,8 +158,8 @@ class EndpointSettingsViewModel: ObservableObject {
         let id = selectedProfileId ?? UUID().uuidString
 
         // Build the profile from the current form fields.
-        // The videoCodec is included so the user's codec choice is
-        // persisted alongside the rest of the endpoint configuration.
+        // SRT fields are included so they persist alongside the endpoint config.
+        // For RTMP URLs the SRT values are stored but ignored at connection time.
         let profile = EndpointProfile(
             id: id,
             name: profileName.isEmpty ? "Untitled" : profileName,
@@ -132,7 +168,11 @@ class EndpointSettingsViewModel: ObservableObject {
             username: username.isEmpty ? nil : username,
             password: password.isEmpty ? nil : password,
             isDefault: profiles.first(where: { $0.id == id })?.isDefault ?? false,
-            videoCodec: videoCodec
+            videoCodec: videoCodec,
+            srtMode: srtMode,
+            srtPassphrase: srtPassphrase.isEmpty ? nil : srtPassphrase,
+            srtLatencyMs: srtLatencyMs,
+            srtStreamId: srtStreamId.isEmpty ? nil : srtStreamId
         )
 
         do {
@@ -195,6 +235,15 @@ class EndpointSettingsViewModel: ObservableObject {
         password = profile.password ?? ""
         // Restore the video codec the user previously chose for this profile.
         videoCodec = profile.videoCodec
+
+        // Restore SRT-specific fields from the saved profile.
+        // These are only meaningful when the URL starts with srt://,
+        // but we always load them so switching back to an SRT URL
+        // doesn't lose the user's previous SRT settings.
+        srtMode = profile.srtMode
+        srtPassphrase = profile.srtPassphrase ?? ""
+        srtLatencyMs = profile.srtLatencyMs
+        srtStreamId = profile.srtStreamId ?? ""
     }
 
     /// Clear all form fields and deselect the current profile.
@@ -208,6 +257,11 @@ class EndpointSettingsViewModel: ObservableObject {
         password = ""
         // Reset video codec to H.264 — the safest default for new profiles.
         videoCodec = .h264
+        // Reset SRT fields to sensible defaults for a new profile.
+        srtMode = .caller
+        srtPassphrase = ""
+        srtLatencyMs = 120
+        srtStreamId = ""
         saveError = nil
         testConnectionResult = nil
         testResultIcon = nil
@@ -230,7 +284,7 @@ class EndpointSettingsViewModel: ObservableObject {
 
         // Build a temporary profile from the current form fields.
         // We don't need a real ID — this profile won't be saved.
-        // Include the videoCodec so the test can validate codec support.
+        // Include SRT fields so the test can validate SRT connectivity.
         let profile = EndpointProfile(
             id: "test-\(UUID().uuidString)",
             name: "Connection Test",
@@ -238,7 +292,11 @@ class EndpointSettingsViewModel: ObservableObject {
             streamKey: streamKey,
             username: username.isEmpty ? nil : username,
             password: password.isEmpty ? nil : password,
-            videoCodec: videoCodec
+            videoCodec: videoCodec,
+            srtMode: srtMode,
+            srtPassphrase: srtPassphrase.isEmpty ? nil : srtPassphrase,
+            srtLatencyMs: srtLatencyMs,
+            srtStreamId: srtStreamId.isEmpty ? nil : srtStreamId
         )
 
         // Run the test in a background Task so the UI stays responsive.
