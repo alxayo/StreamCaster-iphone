@@ -75,6 +75,7 @@
 		CE7489BBCDF3B07EBD44DEFF /* CameraDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = F79C277B6E5D172605DD57AB /* CameraDevice.swift */; };
 		CFA108A40108C58894CCEC0F /* RecordingFileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C2BD6DA420DBEA54A2E1D43 /* RecordingFileManager.swift */; };
 		D0F2C486BB05D0907572E9A8 /* EncoderController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6485A87613ED34E3D50B9BF9 /* EncoderController.swift */; };
+		D110A343F95576355617D8A5 /* ConnectionTesterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B46BC4417F1128643051F04 /* ConnectionTesterTests.swift */; };
 		D374827D97649A5BCBFC922C /* DeviceCapabilityQuery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E89C221132B3B8558444345 /* DeviceCapabilityQuery.swift */; };
 		D6023C14F756C14858AD205F /* EndpointProfileRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A965B0520EEE7D0D43ABB1D /* EndpointProfileRepository.swift */; };
 		DAA926F188A3562669B205FF /* ProlongedSessionMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A951F2F02BC9DCE181AE0C45 /* ProlongedSessionMonitor.swift */; };
@@ -107,7 +108,7 @@
 		0309A18382A398A4AF607FA3 /* CredentialSanitizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialSanitizerTests.swift; sourceTree = "<group>"; };
 		03B49335D60DCD1FE3EF170C /* TransportSecurityValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportSecurityValidatorTests.swift; sourceTree = "<group>"; };
 		094E8E14046E5C62E1A8F019 /* ConnectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManager.swift; sourceTree = "<group>"; };
-		0A476A3EA608FAECAB88A41F /* StreamCaster.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StreamCaster.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0A476A3EA608FAECAB88A41F /* StreamCaster.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = StreamCaster.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0BD1F34BD7BCFE4DE2CF3B19 /* StreamProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamProtocol.swift; sourceTree = "<group>"; };
 		0CCF64AEF65B6A704C0A87AE /* AbrLadderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AbrLadderTests.swift; sourceTree = "<group>"; };
 		0E8AC8F7ECE36F0185EA5D32 /* ThermalMonitorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThermalMonitorTests.swift; sourceTree = "<group>"; };
@@ -140,6 +141,7 @@
 		6744416E7D8A322FAE07873A /* StreamingEngineProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamingEngineProtocol.swift; sourceTree = "<group>"; };
 		67804D3671AAB06C02D4DC5B /* VideoOrientationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoOrientationTests.swift; sourceTree = "<group>"; };
 		698CB7C1E76A22989BFA77FC /* BatteryMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryMonitor.swift; sourceTree = "<group>"; };
+		6B46BC4417F1128643051F04 /* ConnectionTesterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionTesterTests.swift; sourceTree = "<group>"; };
 		6B8B41BB76BEF70182FE621A /* NowPlayingController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingController.swift; sourceTree = "<group>"; };
 		6BFCDC5C0D6BE5A473DEFF01 /* EncoderBridgeFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncoderBridgeFactory.swift; sourceTree = "<group>"; };
 		6F636236F1E93C2F9F27B744 /* MetricsCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricsCollector.swift; sourceTree = "<group>"; };
@@ -395,6 +397,7 @@
 				75C3726E33CC0525BF232F7F /* AbrPolicyTests.swift */,
 				2B1478CAD7C8C7C572620BA9 /* BatteryMonitorTests.swift */,
 				B9B5110095E37AFB2563FAD9 /* ConnectionManagerTests.swift */,
+				6B46BC4417F1128643051F04 /* ConnectionTesterTests.swift */,
 				6173C51DF2C9843B940938CD /* EncoderControllerTests.swift */,
 				10A55DF2C4BC623F046A4129 /* ReconnectPolicyTests.swift */,
 				03B49335D60DCD1FE3EF170C /* TransportSecurityValidatorTests.swift */,
@@ -526,6 +529,8 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
 			};
 			buildConfigurationList = 12D3DF4B3EA937DC8EC923AB /* Build configuration list for PBXProject "StreamCaster" */;
 			developmentRegion = en;
@@ -628,6 +633,7 @@
 				161DFC4E218DA087562FECD9 /* AbrPolicyTests.swift in Sources */,
 				A2915379B62DD1D3CE3A038F /* BatteryMonitorTests.swift in Sources */,
 				FAA67BC3954ECAEDB10BAAC8 /* ConnectionManagerTests.swift in Sources */,
+				D110A343F95576355617D8A5 /* ConnectionTesterTests.swift in Sources */,
 				9C116DC130548B26D0D99DE5 /* CrashReportConfiguratorTests.swift in Sources */,
 				779D281D2A1C3A3E82EC497C /* CredentialSanitizerTests.swift in Sources */,
 				4497B43DAAE2383D310AA820 /* EncoderControllerTests.swift in Sources */,
@@ -738,7 +744,6 @@
 				CODE_SIGN_ENTITLEMENTS = StreamCaster/StreamCaster.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 6QPP8SFQ23;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = StreamCaster/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
@@ -824,7 +829,6 @@
 				CODE_SIGN_ENTITLEMENTS = StreamCaster/StreamCaster.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 6QPP8SFQ23;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = StreamCaster/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;

@@ -27,36 +27,6 @@ struct EndpointSettingsView: View {
     var body: some View {
         Form {
             // ──────────────────────────────────────────────
-            // MARK: - Success / Error Banners
-            // ──────────────────────────────────────────────
-            // Shown at the very top so the user always sees feedback
-            // after saving, updating, or deleting a profile.
-            if let successMessage = viewModel.saveSuccessMessage {
-                Section {
-                    HStack {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                        Text(successMessage)
-                            .foregroundColor(.green)
-                            .fontWeight(.medium)
-                    }
-                }
-                .listRowBackground(Color.green.opacity(0.1))
-            }
-
-            if let error = viewModel.saveError {
-                Section {
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.red)
-                        Text(error)
-                            .foregroundColor(.red)
-                    }
-                }
-                .listRowBackground(Color.red.opacity(0.1))
-            }
-
-            // ──────────────────────────────────────────────
             // MARK: - Saved Profiles List (top for visibility)
             // ──────────────────────────────────────────────
             if !viewModel.profiles.isEmpty {
@@ -345,6 +315,29 @@ struct EndpointSettingsView: View {
                     } label: {
                         Label("New Profile", systemImage: "plus")
                     }
+                }
+
+                // Inline success feedback — visible right where the user tapped Save.
+                if let successMessage = viewModel.saveSuccessMessage {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                        Text(successMessage)
+                            .foregroundColor(.green)
+                            .fontWeight(.medium)
+                    }
+                    .listRowBackground(Color.green.opacity(0.1))
+                }
+
+                // Inline error feedback — visible right where the user tapped Save.
+                if let error = viewModel.saveError {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.red)
+                        Text(error)
+                            .foregroundColor(.red)
+                    }
+                    .listRowBackground(Color.red.opacity(0.1))
                 }
             }
 

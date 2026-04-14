@@ -1,10 +1,10 @@
 // ConnectionTester.swift
 // StreamCaster
 //
-// Performs a lightweight RTMP handshake probe to verify that the
-// app can reach and connect to the user's RTMP server. This does
-// NOT send any audio/video data — it only checks that the network
-// path, TCP connection, and RTMP handshake all succeed.
+// Performs a lightweight TCP probe to verify that the app can reach
+// the user's streaming server. Supports RTMP, RTMPS, and SRT URLs.
+// This does NOT send any audio/video data — it only checks that the
+// network path and TCP connection succeed (plus TLS for RTMPS).
 //
 // Use this to give users a quick "does my config work?" check
 // before they go live.
@@ -14,18 +14,18 @@ import Network
 
 // MARK: - ConnectionTester
 
-/// ConnectionTester performs a lightweight RTMP handshake probe.
+/// ConnectionTester performs a lightweight TCP connection probe.
 ///
 /// WHAT DOES IT TEST?
-/// - Network reachability to the RTMP server
+/// - Network reachability to the streaming server
 /// - TCP connection establishment
-/// - RTMP handshake (C0/C1 → S0/S1/S2)
 /// - TLS/SSL for rtmps:// endpoints
 ///
 /// WHAT DOESN'T IT TEST?
 /// - Actual streaming (no video/audio data is sent)
 /// - Long-running publish stability
 /// - Stream key validity (some servers only validate on publish)
+/// - SRT handshake (only TCP reachability for srt:// URLs)
 ///
 /// The result label makes clear this is a TRANSPORT probe,
 /// not a full publish validation.
@@ -73,6 +73,10 @@ struct ConnectionTester {
     /// The default RTMPS port (used when the URL doesn't specify one).
     private static let defaultRtmpsPort: UInt16 = 443
 
+    /// The default SRT port (used when the URL doesn't specify one).
+    /// 9998 is the most common SRT ingest port used by OBS, vMix, etc.
+    private static let defaultSrtPort: UInt16 = 9998
+
     // MARK: - Public API
 
     /// Run the connection test against the given endpoint profile.
@@ -96,10 +100,10 @@ struct ConnectionTester {
         }
 
         // ── Step 2: Parse the URL to get host and port ──
-        guard let parsed = parseRtmpUrl(profile.rtmpUrl) else {
+        guard let parsed = parseUrl(profile.rtmpUrl) else {
             return .networkError(
-                message: "Invalid RTMP URL. Check the format "
-                       + "(e.g., rtmp://server.example.com/live)."
+                message: "Invalid URL. Check the format "
+                       + "(e.g., rtmp://server.example.com/live or srt://server:port)."
             )
         }
 
@@ -117,37 +121,42 @@ struct ConnectionTester {
 
     // MARK: - URL Parsing
 
-    /// A simple container for the parts we need from an RTMP URL.
-    private struct ParsedURL {
+    /// A simple container for the parts we need from a streaming URL.
+    struct ParsedURL {
         let host: String
         let port: UInt16
         let isSecure: Bool
     }
 
-    /// Extract the host, port, and scheme from an RTMP URL string.
+    /// Extract the host, port, and scheme from a streaming URL string.
+    ///
+    /// Supports `rtmp://`, `rtmps://`, and `srt://` schemes.
     ///
     /// Examples:
     ///   "rtmp://live.twitch.tv/app"     → host="live.twitch.tv", port=1935, secure=false
-    ///   "rtmps://a.]rtmp.youtube.com"    → host="a.rtmp.youtube.com", port=443, secure=true
+    ///   "rtmps://a.rtmp.youtube.com"    → host="a.rtmp.youtube.com", port=443, secure=true
     ///   "rtmp://myserver:1936/live"      → host="myserver", port=1936, secure=false
+    ///   "srt://ingest.server.com:9000"   → host="ingest.server.com", port=9000, secure=false
+    ///   "srt://myserver"                 → host="myserver", port=9998, secure=false
     ///
     /// - Parameter urlString: The raw URL the user typed in.
     /// - Returns: A `ParsedURL`, or `nil` if the URL can't be parsed.
-    private static func parseRtmpUrl(_ urlString: String) -> ParsedURL? {
-        // Figure out if this is rtmp:// or rtmps://
+    static func parseUrl(_ urlString: String) -> ParsedURL? {
         let lowered = urlString.lowercased()
-        let isSecure = lowered.hasPrefix("rtmps://")
-        let isPlain = lowered.hasPrefix("rtmp://")
+        let isRtmps = lowered.hasPrefix("rtmps://")
+        let isRtmp = lowered.hasPrefix("rtmp://")
+        let isSrt = lowered.hasPrefix("srt://")
 
-        // Must start with rtmp:// or rtmps://
-        guard isSecure || isPlain else { return nil }
+        guard isRtmps || isRtmp || isSrt else { return nil }
 
         // Convert to a standard URL by swapping the scheme to https/http
-        // so Foundation's URL parser can handle it. RTMP URLs have the
+        // so Foundation's URL parser can handle it. Streaming URLs have the
         // same structure as HTTP URLs (host, port, path).
         let fakeHttpUrl: String
-        if isSecure {
+        if isRtmps {
             fakeHttpUrl = "https://" + String(urlString.dropFirst("rtmps://".count))
+        } else if isSrt {
+            fakeHttpUrl = "http://" + String(urlString.dropFirst("srt://".count))
         } else {
             fakeHttpUrl = "http://" + String(urlString.dropFirst("rtmp://".count))
         }
@@ -161,11 +170,16 @@ struct ConnectionTester {
         let port: UInt16
         if let urlPort = url.port {
             port = UInt16(urlPort)
+        } else if isRtmps {
+            port = defaultRtmpsPort
+        } else if isSrt {
+            port = defaultSrtPort
         } else {
-            port = isSecure ? defaultRtmpsPort : defaultRtmpPort
+            port = defaultRtmpPort
         }
 
-        return ParsedURL(host: host, port: port, isSecure: isSecure)
+        // SRT uses plain TCP, no TLS.
+        return ParsedURL(host: host, port: port, isSecure: isRtmps)
     }
 
     // MARK: - TCP Probe
