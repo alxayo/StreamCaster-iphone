@@ -99,9 +99,28 @@ final class AVDeviceCapabilityQuery: DeviceCapabilityQuery {
             position: .unspecified
         )
 
-        let devices = discoverySession.devices.map { CameraDevice.from($0) }
-        cachedCameraDevices = devices
-        return devices
+        // Deduplicate by CameraDevice.id (same type+position = same camera).
+        // Multi-cam discovery can return the same physical camera twice.
+        var seen = Set<String>()
+        var unique = [CameraDevice]()
+        for avDevice in discoverySession.devices {
+            let cam = CameraDevice.from(avDevice)
+            if seen.insert(cam.id).inserted {
+                unique.append(cam)
+            }
+        }
+
+        // Sort: back cameras first, then front, then external.
+        // Within each group, sort by focal length (device type order).
+        let sorted = unique.sorted { a, b in
+            let aGroup = Self.positionSortKey(a.position)
+            let bGroup = Self.positionSortKey(b.position)
+            if aGroup != bGroup { return aGroup < bGroup }
+            return Self.focalLengthSortKey(a.deviceType) < Self.focalLengthSortKey(b.deviceType)
+        }
+
+        cachedCameraDevices = sorted
+        return sorted
     }
 
     /// Returns the stabilization modes supported by the given camera device.
@@ -299,5 +318,24 @@ final class AVDeviceCapabilityQuery: DeviceCapabilityQuery {
         )
         // Return the first device found at the requested position
         return discoverySession.devices.first
+    }
+
+    /// Sort key for camera position: back=0, front=1, external/unknown=2.
+    private static func positionSortKey(_ position: AVCaptureDevice.Position) -> Int {
+        switch position {
+        case .back:  return 0
+        case .front: return 1
+        default:     return 2
+        }
+    }
+
+    /// Sort key by approximate focal length: ultra-wide < wide < telephoto.
+    private static func focalLengthSortKey(_ type: AVCaptureDevice.DeviceType) -> Int {
+        switch type {
+        case .builtInUltraWideCamera:  return 0
+        case .builtInWideAngleCamera:  return 1
+        case .builtInTelephotoCamera:  return 2
+        default:                       return 3
+        }
     }
 }

@@ -644,36 +644,15 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         return fallback
     }
 
-    /// Alternate front/back cycling order:
-    /// Back Wide → Front → Back Ultra Wide → Front → Back Telephoto → Front → …
+    /// Cycle to the next camera in enumeration order (wraps around).
+    /// Order: back cameras (ultra-wide → wide → telephoto), then front.
     private func nextCameraInCycle(after current: CameraDevice) -> CameraDevice {
-        let backs = availableCameraDevices.filter { $0.position == .back }
-        let fronts = availableCameraDevices.filter { $0.position == .front }
-
-        if current.position == .front {
-            // Switch to next back camera after the last-used back camera
-            if let lastBackIndex = backs.firstIndex(where: { $0 == lastUsedBackCamera }),
-               lastBackIndex + 1 < backs.count {
-                let next = backs[lastBackIndex + 1]
-                lastUsedBackCamera = next
-                return next
-            }
-            // Wrap around to first back camera
-            if let first = backs.first {
-                lastUsedBackCamera = first
-                return first
-            }
-            // No back cameras — stay on front
-            return current
-        } else {
-            // Currently on a back camera — switch to front
-            lastUsedBackCamera = current
-            return fronts.first ?? current
+        guard availableCameraDevices.count > 1 else { return current }
+        guard let index = availableCameraDevices.firstIndex(of: current) else {
+            return availableCameraDevices.first ?? current
         }
+        return availableCameraDevices[(index + 1) % availableCameraDevices.count]
     }
-
-    /// Tracks which back camera was last used for cycling purposes.
-    private var lastUsedBackCamera: CameraDevice?
 
     /// Observation token for device orientation changes. Cancelled on deinit.
     private var orientationObserver: NSObjectProtocol?
