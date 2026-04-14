@@ -821,8 +821,8 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     static func currentLandscapeCaptureOrientation() -> AVCaptureVideoOrientation {
         if let iface = currentInterfaceOrientation() {
             switch iface {
-            case .landscapeLeft:  return .landscapeRight
-            case .landscapeRight: return .landscapeLeft
+            case .landscapeLeft:  return .landscapeLeft
+            case .landscapeRight: return .landscapeRight
             default: break
             }
         }
@@ -862,14 +862,18 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
 
     /// Convert a `UIInterfaceOrientation` to the matching
     /// `AVCaptureVideoOrientation`.
+    ///
+    /// Unlike `UIDeviceOrientation`, `UIInterfaceOrientation` uses the
+    /// **same** left/right convention as `AVCaptureVideoOrientation`,
+    /// so no swap is needed.
     static func captureOrientation(
         fromInterface orientation: UIInterfaceOrientation
     ) -> AVCaptureVideoOrientation? {
         switch orientation {
         case .portrait:            return .portrait
         case .portraitUpsideDown:   return .portraitUpsideDown
-        case .landscapeLeft:       return .landscapeRight
-        case .landscapeRight:      return .landscapeLeft
+        case .landscapeLeft:       return .landscapeLeft
+        case .landscapeRight:      return .landscapeRight
         default:                   return nil
         }
     }
