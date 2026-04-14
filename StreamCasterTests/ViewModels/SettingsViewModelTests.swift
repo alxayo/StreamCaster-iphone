@@ -112,6 +112,9 @@ private class MockSettingsRepository: SettingsRepository {
     /// Default recording destination: Photos library — easy for users to find.
     func getRecordingDestination() -> RecordingDestination { .photosLibrary }
     func setRecordingDestination(_ destination: RecordingDestination) {}
+
+    func getOrientationMode() -> String { "auto" }
+    func setOrientationMode(_ mode: String) {}
 }
 
 // MARK: - Mock DeviceCapabilityQuery
@@ -272,12 +275,12 @@ final class SettingsViewModelTests: XCTestCase {
                        "Default camera should be the back camera")
     }
 
-    /// Verify the default orientation is landscape.
-    /// Landscape is the standard for video streaming — viewers expect
-    /// a widescreen (16:9) image on platforms like Twitch and YouTube.
-    func testInitialOrientationIsLandscape() {
-        XCTAssertEqual(viewModel.preferredOrientation, "landscape",
-                       "Default orientation should be landscape")
+    /// Verify the default orientation is Auto.
+    /// Auto mode lets the device rotate freely and locks to the current
+    /// orientation when streaming starts.
+    func testInitialOrientationIsAuto() {
+        XCTAssertEqual(viewModel.preferredOrientation, "auto",
+                       "Default orientation should be auto")
     }
 
     // ──────────────────────────────────────────────────────────

@@ -51,6 +51,7 @@
 		980B3AC122A4D5A851C7E980 /* EndpointProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83D242E24211C4047321786E /* EndpointProfile.swift */; };
 		9C116DC130548B26D0D99DE5 /* CrashReportConfiguratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7D69BB438CDEB38CC729151 /* CrashReportConfiguratorTests.swift */; };
 		9C1A6CEB03D68406455B3E65 /* StreamViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 648E4AB445A0E869C4C23BA9 /* StreamViewModel.swift */; };
+		9CDEE31D36ED253FEAB3E633 /* EndpointSwitchButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39F00B1D3811D672B5965E25 /* EndpointSwitchButton.swift */; };
 		A2915379B62DD1D3CE3A038F /* BatteryMonitorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B1478CAD7C8C7C572620BA9 /* BatteryMonitorTests.swift */; };
 		A8EB63DC5D117A67040C2656 /* StreamView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20E9CCAF9D44BB525DF757D8 /* StreamView.swift */; };
 		AA185F2DDED2B8BA2ACC2D38 /* ConnectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 094E8E14046E5C62E1A8F019 /* ConnectionManager.swift */; };
@@ -121,6 +122,7 @@
 		2D652CFA013346FA1CD1F37E /* CameraInterruptionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraInterruptionHandler.swift; sourceTree = "<group>"; };
 		2E89C221132B3B8558444345 /* DeviceCapabilityQuery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceCapabilityQuery.swift; sourceTree = "<group>"; };
 		34D5060AF7EBA60D9A1D7003 /* StreamConfigTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamConfigTests.swift; sourceTree = "<group>"; };
+		39F00B1D3811D672B5965E25 /* EndpointSwitchButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndpointSwitchButton.swift; sourceTree = "<group>"; };
 		3A965B0520EEE7D0D43ABB1D /* EndpointProfileRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndpointProfileRepository.swift; sourceTree = "<group>"; };
 		3AD8DB46006467F4AE7D42D1 /* TransportSecurityValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportSecurityValidator.swift; sourceTree = "<group>"; };
 		410C4359C422AA9F8332D080 /* TerminationRecovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminationRecovery.swift; sourceTree = "<group>"; };
@@ -311,6 +313,7 @@
 		A9BFA05119C025A6A8194428 /* Stream */ = {
 			isa = PBXGroup;
 			children = (
+				39F00B1D3811D672B5965E25 /* EndpointSwitchButton.swift */,
 				949115F1EDDADA858B8CDD94 /* StreamHudView.swift */,
 				20E9CCAF9D44BB525DF757D8 /* StreamView.swift */,
 			);
@@ -578,6 +581,7 @@
 				D6023C14F756C14858AD205F /* EndpointProfileRepository.swift in Sources */,
 				4DEF2886E52AC43803CEB234 /* EndpointSettingsView.swift in Sources */,
 				B9DDD934291B0A1B117E5E27 /* EndpointSettingsViewModel.swift in Sources */,
+				9CDEE31D36ED253FEAB3E633 /* EndpointSwitchButton.swift in Sources */,
 				67820C2CB94E03BB0F4B5871 /* GeneralSettingsView.swift in Sources */,
 				2B9A4E83318E99BFF1EB30A5 /* HaishinKitEncoderBridge.swift in Sources */,
 				795796B501057B6AF1F6D6B1 /* KeychainEndpointProfileRepository.swift in Sources */,

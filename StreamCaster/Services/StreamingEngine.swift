@@ -50,6 +50,19 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     /// A user-facing error message for the latest start/stream failure.
     @Published private(set) var lastErrorMessage: String?
 
+    /// `true` when the camera preview is attached and showing a live feed.
+    /// This is separate from `TransportState` because the preview lifecycle
+    /// is tied to the view hierarchy, not the network connection.
+    @Published private(set) var isPreviewing: Bool = false
+
+    /// Metadata about the endpoint profile currently being streamed to.
+    /// Set when a stream starts, cleared when it stops.
+    @Published private(set) var activeProfileName: String?
+    @Published private(set) var activeProtocol: StreamProtocol?
+    @Published private(set) var activeVideoCodec: VideoCodec?
+    /// Badge text for the protocol, distinguishing "RTMP" from "RTMPS".
+    @Published private(set) var activeProtocolBadge: String?
+
     // MARK: - Combine Publishers
 
     /// Emits a new snapshot every time any part of the session state changes.
@@ -111,6 +124,24 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
 
     /// The camera currently in use (persisted across sessions).
     private(set) var currentCameraDevice: CameraDevice?
+
+    // MARK: - Endpoint Profile Access
+
+    /// All configured endpoint profiles. Used by the UI for endpoint selection.
+    func getEndpointProfiles() -> [EndpointProfile] {
+        profileRepository.getAll()
+    }
+
+    /// The currently selected default endpoint profile.
+    func getDefaultProfile() -> EndpointProfile? {
+        profileRepository.getDefault() ?? profileRepository.getAll().first
+    }
+
+    /// Set a profile as the default endpoint for future streams.
+    func setDefaultProfile(_ profileId: String) {
+        guard let profile = profileRepository.getById(profileId) else { return }
+        try? profileRepository.setDefault(profile)
+    }
 
     // MARK: - Init
 
@@ -194,6 +225,20 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         // We pass the profile so the codec selection propagates into the
         // config, which the ABR system uses for codec-specific bitrate targets.
         let config = buildStreamConfig(profileId: profileId, profile: profile)
+
+        // Capture active profile metadata so the HUD can display it.
+        activeProfileName = profile.name
+        activeProtocol = profile.detectedProtocol
+        activeVideoCodec = profile.videoCodec
+        // Derive badge text: "RTMPS" for rtmps:// URLs, otherwise protocol display name.
+        let urlLower = profile.rtmpUrl.lowercased().trimmingCharacters(in: .whitespaces)
+        if urlLower.hasPrefix("rtmps://") {
+            activeProtocolBadge = "RTMPS"
+        } else if urlLower.hasPrefix("srt://") {
+            activeProtocolBadge = "SRT"
+        } else {
+            activeProtocolBadge = "RTMP"
+        }
 
         // Step 2b: Create the correct encoder bridge for this profile's protocol.
         // The factory inspects the URL scheme (rtmp:// vs srt://) and returns
@@ -324,6 +369,12 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         statsCancellable?.cancel()
         statsCancellable = nil
         streamStats = StreamStats()
+
+        // Clear active profile metadata.
+        activeProfileName = nil
+        activeProtocol = nil
+        activeVideoCodec = nil
+        activeProtocolBadge = nil
 
         // Update state to .stopped with the given reason.
         let snapshot = await coordinator.stopSession(reason: reason)
@@ -530,6 +581,7 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         // Remember the preview view so we can re-attach it if the bridge
         // is swapped later (e.g., when startStream creates a new bridge).
         currentPreviewView = view
+        isPreviewing = true
 
         encoderBridge.attachPreview(view)
 
@@ -549,6 +601,7 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     /// Remove the camera preview from its parent view.
     func detachPreview() {
         currentPreviewView = nil
+        isPreviewing = false
 
         encoderBridge.detachPreview()
 
@@ -624,6 +677,8 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
 
     /// Observation token for device orientation changes. Cancelled on deinit.
     private var orientationObserver: NSObjectProtocol?
+    /// Debounce work item for orientation changes in Auto mode (300ms).
+    private var orientationDebounceWork: DispatchWorkItem?
 
     /// Attach a camera and apply the user's stabilization preference.
     private func attachCameraWithStabilization(_ device: CameraDevice) async {
@@ -649,8 +704,36 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
             object: nil,
             queue: .main
         ) { [weak self] _ in
+            Task { @MainActor in
+                self?.handleOrientationChange()
+            }
+        }
+    }
+
+    /// Handle an orientation change event with debounce.
+    ///
+    /// During streaming, orientation is locked so we skip.
+    /// In Auto mode (previewing/idle), we debounce 300ms before
+    /// applying the new orientation to avoid jitter during rotation animation.
+    private func handleOrientationChange() {
+        let transport = sessionSnapshot.transport
+        switch transport {
+        case .idle, .stopped:
+            break // Allow orientation update
+        default:
+            // During streaming (connecting/live/reconnecting/stopping),
+            // orientation is locked — skip.
+            return
+        }
+
+        orientationDebounceWork?.cancel()
+
+        let work = DispatchWorkItem { [weak self] in
             self?.applyCurrentDeviceOrientation()
         }
+        orientationDebounceWork = work
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
     }
 
     /// Read the current device orientation, convert it to an
@@ -804,8 +887,17 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     /// (e.g., an error message) before clearing it.
     private func scheduleReturnToIdle() {
         Task {
+            // Capture the current session token to guard against races.
+            // If the user starts a new stream within the 2-second window,
+            // a new token is generated and this delayed reset is a no-op.
+            let token = await coordinator.currentSessionToken
+
             // Wait 2 seconds so the user can see why the stream stopped.
             try? await Task.sleep(nanoseconds: 2_000_000_000)
+
+            // Only reset if no new session has started since we stopped.
+            let currentToken = await coordinator.currentSessionToken
+            guard token == currentToken else { return }
 
             let snapshot = await coordinator.resetToIdle()
             applySnapshot(snapshot)

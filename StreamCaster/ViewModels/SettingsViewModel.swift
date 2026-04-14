@@ -102,12 +102,12 @@ class SettingsViewModel: ObservableObject {
         didSet { settingsRepo.setVideoStabilizationMode(videoStabilizationMode) }
     }
 
-    /// "landscape" or "portrait" — locks orientation while streaming.
+    /// "auto", "landscape", or "portrait" — orientation behavior.
+    /// Auto: device rotates freely; locked to current at stream start.
+    /// Portrait/Landscape: forced to that orientation always.
     @Published var preferredOrientation: String {
         didSet {
-            // Store as Int: 1 = landscape, 0 = portrait
-            let orientationInt = preferredOrientation == "landscape" ? 1 : 0
-            settingsRepo.setPreferredOrientation(orientationInt)
+            settingsRepo.setOrientationMode(preferredOrientation)
         }
     }
 
@@ -226,10 +226,9 @@ class SettingsViewModel: ObservableObject {
         self.isLocalRecordingEnabled = settingsRepo.isLocalRecordingEnabled()
         self.recordingDestination = settingsRepo.getRecordingDestination()
 
-        // Convert the stored Int orientation back to a human-readable string.
-        // 1 = landscape (default), anything else = portrait.
-        let orientationInt = settingsRepo.getPreferredOrientation()
-        self.preferredOrientation = orientationInt == 1 ? "landscape" : "portrait"
+        // Load the orientation mode from the new string-based key.
+        // Migration from old Int key happens inside getOrientationMode().
+        self.preferredOrientation = settingsRepo.getOrientationMode()
 
         // Query the device hardware for available cameras and resolutions
         self.availableCameras = capabilityQuery.availableCameras()

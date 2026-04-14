@@ -87,6 +87,13 @@ protocol SettingsRepository {
     /// Save the preferred capture orientation.
     func setPreferredOrientation(_ orientation: Int)
 
+    /// Get the preferred orientation mode as a string ("auto", "portrait", "landscape").
+    /// Falls back to reading the legacy Int key and migrating.
+    func getOrientationMode() -> String
+
+    /// Save the preferred orientation mode ("auto", "portrait", "landscape").
+    func setOrientationMode(_ mode: String)
+
     // MARK: Stabilization Settings
 
     /// Get the preferred video stabilization mode.

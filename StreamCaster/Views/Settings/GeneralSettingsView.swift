@@ -56,13 +56,14 @@ struct GeneralSettingsView: View {
             // ──────────────────────────────────────────────
             Section {
                 Picker("Preferred Orientation", selection: $viewModel.preferredOrientation) {
-                    Text("Landscape").tag("landscape")
+                    Text("Auto").tag("auto")
                     Text("Portrait").tag("portrait")
+                    Text("Landscape").tag("landscape")
                 }
             } header: {
                 Text("Orientation")
             } footer: {
-                Text("Orientation is locked once streaming begins. Choose the orientation you want before going live.")
+                Text("Auto rotates freely and locks to the current orientation when streaming begins. Portrait and Landscape are always locked.")
             }
 
             // ──────────────────────────────────────────────

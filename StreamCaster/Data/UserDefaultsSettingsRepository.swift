@@ -38,6 +38,7 @@ final class UserDefaultsSettingsRepository: SettingsRepository {
         static let cameraPosition      = "settings.cameraPosition"
         static let cameraDevice        = "settings.cameraDevice"
         static let orientation         = "settings.orientation"
+        static let orientationMode     = "settings.orientationMode"
         static let videoStabilization  = "settings.videoStabilization"
         static let reconnectMaxAttempts = "settings.reconnectMaxAttempts"
         static let lowBatteryThreshold = "settings.lowBatteryThreshold"
@@ -233,6 +234,32 @@ final class UserDefaultsSettingsRepository: SettingsRepository {
 
     func setPreferredOrientation(_ orientation: Int) {
         defaults.set(orientation, forKey: Keys.orientation)
+    }
+
+    func getOrientationMode() -> String {
+        // If the new key exists, use it directly.
+        if let mode = defaults.string(forKey: Keys.orientationMode) {
+            return mode
+        }
+        // Migrate from the legacy Int key: 0=portrait, 1=landscape.
+        if hasValue(forKey: Keys.orientation) {
+            let legacy = defaults.integer(forKey: Keys.orientation)
+            let migrated = legacy == 0 ? "portrait" : "landscape"
+            defaults.set(migrated, forKey: Keys.orientationMode)
+            return migrated
+        }
+        // First launch — default to auto.
+        return "auto"
+    }
+
+    func setOrientationMode(_ mode: String) {
+        defaults.set(mode, forKey: Keys.orientationMode)
+        // Keep legacy key in sync for backward compatibility.
+        switch mode {
+        case "portrait":  defaults.set(0, forKey: Keys.orientation)
+        case "landscape": defaults.set(1, forKey: Keys.orientation)
+        default:          defaults.set(1, forKey: Keys.orientation)
+        }
     }
 
     // ──────────────────────────────────────────────────────────────

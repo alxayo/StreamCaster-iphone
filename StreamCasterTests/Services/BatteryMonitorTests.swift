@@ -129,6 +129,9 @@ private class MockSettingsRepository: SettingsRepository {
 
     func isStartInMinimalMode() -> Bool { false }
     func setStartInMinimalMode(_ enabled: Bool) {}
+
+    func getOrientationMode() -> String { "auto" }
+    func setOrientationMode(_ mode: String) {}
 }
 
 // MARK: - BatteryMonitorTests

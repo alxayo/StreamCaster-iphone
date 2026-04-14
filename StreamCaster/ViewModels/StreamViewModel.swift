@@ -79,6 +79,29 @@ final class StreamViewModel: ObservableObject {
     /// Useful for long streams or when the phone is stationary (e.g., on a tripod).
     @Published var isMinimalMode: Bool = false
 
+    /// `true` when the camera preview is attached and showing a live feed.
+    @Published private(set) var isPreviewing: Bool = false
+
+    // ── Endpoint profile properties for the endpoint picker ──
+
+    /// All configured endpoint profiles (for the endpoint switch menu).
+    @Published private(set) var endpointProfiles: [EndpointProfile] = []
+
+    /// The ID of the currently selected (default) endpoint profile.
+    @Published private(set) var selectedProfileId: String?
+
+    /// Name of the endpoint currently being streamed to (set at stream start).
+    @Published private(set) var activeProfileName: String?
+
+    /// Protocol of the active stream (RTMP/RTMPS/SRT), set at stream start.
+    @Published private(set) var activeProtocol: StreamProtocol?
+
+    /// Video codec of the active stream, set at stream start.
+    @Published private(set) var activeVideoCodec: VideoCodec?
+
+    /// Protocol badge text distinguishing "RTMP" from "RTMPS", set at stream start.
+    @Published private(set) var activeProtocolBadge: String?
+
     /// When `true`, recording will start automatically once the stream
     /// transitions to `.live`. Set by "Go Live + Record" in the context menu.
     /// Cleared once recording actually starts (or if the stream fails).
@@ -100,6 +123,7 @@ final class StreamViewModel: ObservableObject {
     init(engine: StreamingEngine? = nil) {
         self.engine = engine ?? .shared
         setupBindings()
+        loadProfiles()
     }
 
     // MARK: - Setup
@@ -146,7 +170,12 @@ final class StreamViewModel: ObservableObject {
                 self.statusColor = self.buildStatusColor(for: snapshot.transport)
 
                 // Determine which buttons should be enabled
-                self.canStartStream = snapshot.transport == .idle
+                switch snapshot.transport {
+                case .idle, .stopped:
+                    self.canStartStream = true
+                default:
+                    self.canStartStream = false
+                }
                 self.canStopStream = snapshot.transport == .live
                     || snapshot.transport == .connecting
                     || self.isReconnecting
@@ -198,6 +227,31 @@ final class StreamViewModel: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+
+        // Observe whether the camera preview is attached.
+        engine.$isPreviewing
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] value in
+                self?.isPreviewing = value
+            }
+            .store(in: &cancellables)
+
+        // Observe active profile metadata (set when stream starts).
+        engine.$activeProfileName
+            .receive(on: DispatchQueue.main)
+            .assign(to: &$activeProfileName)
+
+        engine.$activeProtocol
+            .receive(on: DispatchQueue.main)
+            .assign(to: &$activeProtocol)
+
+        engine.$activeVideoCodec
+            .receive(on: DispatchQueue.main)
+            .assign(to: &$activeVideoCodec)
+
+        engine.$activeProtocolBadge
+            .receive(on: DispatchQueue.main)
+            .assign(to: &$activeProtocolBadge)
     }
 
     // MARK: - Actions
@@ -286,6 +340,82 @@ final class StreamViewModel: ObservableObject {
     /// This is a UI-only change. The encoder bridge keeps running normally.
     func toggleMinimalMode() {
         isMinimalMode.toggle()
+    }
+
+    // MARK: - Endpoint Profile Management
+
+    /// Load all endpoint profiles from the repository.
+    func loadProfiles() {
+        endpointProfiles = engine.getEndpointProfiles()
+        if let defaultProfile = engine.getDefaultProfile() {
+            selectedProfileId = defaultProfile.id
+        } else {
+            selectedProfileId = endpointProfiles.first?.id
+        }
+    }
+
+    /// Set a profile as the default and reload the list.
+    func selectEndpoint(profileId: String) {
+        engine.setDefaultProfile(profileId)
+        selectedProfileId = profileId
+    }
+
+    /// The profile ID to use when starting a stream.
+    /// Falls back to "default" for legacy behavior.
+    var effectiveProfileId: String {
+        selectedProfileId ?? "default"
+    }
+
+    /// Name of the currently selected profile (for display under the endpoint button).
+    var selectedProfileName: String? {
+        endpointProfiles.first { $0.id == selectedProfileId }?.name
+    }
+
+    // MARK: - Button Visibility
+
+    /// Whether the endpoint switch button should be visible.
+    var showEndpointSwitch: Bool {
+        guard !endpointProfiles.isEmpty else { return false }
+        switch sessionSnapshot.transport {
+        case .idle, .stopped: return true
+        default: return false
+        }
+    }
+
+    /// Whether the mute button should be visible.
+    var showMuteButton: Bool {
+        switch sessionSnapshot.transport {
+        case .connecting, .live, .reconnecting: return true
+        default: return false
+        }
+    }
+
+    /// Whether the camera switch button should be visible.
+    var showCameraSwitch: Bool {
+        switch sessionSnapshot.transport {
+        case .idle:
+            return isPreviewing
+        case .connecting, .live, .reconnecting:
+            return true
+        default:
+            return false
+        }
+    }
+
+    /// Whether the minimal mode button should be visible.
+    var showMinimalMode: Bool {
+        switch sessionSnapshot.transport {
+        case .connecting, .live, .reconnecting: return true
+        default: return false
+        }
+    }
+
+    /// Whether the settings button should be visible.
+    var showSettingsButton: Bool {
+        switch sessionSnapshot.transport {
+        case .idle, .stopped: return true
+        default: return false
+        }
     }
 
     // MARK: - Formatting Helpers

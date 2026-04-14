@@ -1,133 +1,106 @@
 import SwiftUI
 
 // MARK: - StreamHudView
-// ──────────────────────────────────────────────────────────────────
 // StreamHudView shows real-time streaming statistics at the top
-// of the screen while the user is streaming.
+// of the screen during Live and Reconnecting states.
 //
-// LAYOUT (when streaming):
-// ┌──────────────────────────────────────────────────────┐
-// │ ● LIVE  00:15:32       720p  2.5 Mbps  30 fps  🌡️  │
-// └──────────────────────────────────────────────────────┘
-//
-// The left side shows connection status and duration.
-// The right side shows video quality stats.
-// A thermal warning icon appears if the device is overheating.
-// A recording indicator ("● REC") appears if local recording is on.
-// ──────────────────────────────────────────────────────────────────
+// LAYOUT:
+// +------------------------------------------------------------+
+// | 2500 kbps  30 fps  1920x1080 | 05:23 | YouTube RTMPS REC  |
+// |         LEFT                 | CENTER|   RIGHT (badges)    |
+// +------------------------------------------------------------+
 
 struct StreamHudView: View {
 
-    /// The view model that provides all the streaming data.
-    /// `@ObservedObject` means this view will re-render when
-    /// the view model's @Published properties change.
     @ObservedObject var viewModel: StreamViewModel
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 0) {
 
-            // ── Left side: Status badge + duration ──
+            // -- Left: Stats --
+            HStack(spacing: 12) {
+                Text("\(viewModel.streamStats.videoBitrateKbps) kbps")
+                Text("\(Int(viewModel.streamStats.fps)) fps")
+                Text(viewModel.streamStats.resolution)
+            }
 
-            // Status badge shows "LIVE", "CONNECTING", etc.
-            statusBadge
+            Spacer()
 
-            // Stream duration in HH:MM:SS format.
-            // `.monospacedDigit()` prevents the text from jiggling
-            // as digits change — each digit takes the same width.
-            Text(viewModel.formattedDuration)
+            // -- Center: Duration --
+            Text(compactDuration)
                 .monospacedDigit()
 
             Spacer()
 
-            // ── Right side: Stats (only visible when streaming) ──
+            // -- Right: Badges --
+            HStack(spacing: 8) {
+                if let name = viewModel.activeProfileName {
+                    hudBadge(name, color: .white)
+                }
 
-            if viewModel.isStreaming {
-                // Current video resolution (e.g., "1280x720")
-                Text(viewModel.streamStats.resolution)
+                if let badge = viewModel.activeProtocolBadge {
+                    hudBadge(badge, color: protocolBadgeColor(badge))
+                }
 
-                // Current bitrate (e.g., "2.5 Mbps")
-                Text(viewModel.formattedBitrate)
+                if let codec = viewModel.activeVideoCodec, codec != .h264 {
+                    hudBadge(codec.rawValue.uppercased(), color: Color(red: 0.73, green: 0.53, blue: 0.99))
+                }
 
-                // Current frames per second (e.g., "30 fps")
-                Text("\(Int(viewModel.streamStats.fps)) fps")
-            }
+                if viewModel.streamStats.isRecording {
+                    hudBadge("REC", color: .red)
+                }
 
-            // ── Warning and recording indicators ──
-
-            // Show a thermometer icon when the device is overheating.
-            // The view model sets `showThermalWarning` when thermal
-            // level is "serious" or "critical".
-            if viewModel.showThermalWarning {
-                Image(systemName: "thermometer.high")
-                    .foregroundColor(.orange)
-            }
-
-            // Show a red dot + "REC" when local recording is active.
-            if viewModel.streamStats.isRecording {
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(.red)
-                        .frame(width: 8, height: 8)
-                    Text("REC")
+                if viewModel.streamStats.thermalLevel == .fair {
+                    hudBadge("MODERATE", color: .yellow)
+                } else if viewModel.streamStats.thermalLevel == .serious {
+                    hudBadge("SEVERE", color: Color(red: 1.0, green: 0.53, blue: 0.0))
+                } else if viewModel.streamStats.thermalLevel == .critical {
+                    hudBadge("CRITICAL", color: .red)
                 }
             }
         }
-        // Use a monospaced font so numbers line up neatly
-        .font(.system(size: 13, weight: .medium, design: .monospaced))
+        .font(.system(size: 12, weight: .medium, design: .monospaced))
         .foregroundColor(.white)
         .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        // Frosted glass background so text is readable over the camera
-        .background(.ultraThinMaterial.opacity(0.8))
-        .cornerRadius(8)
+        .padding(.vertical, 6)
+        .background(Color.black.opacity(0.5))
     }
 
-    // MARK: - Status Badge
+    // MARK: - Helpers
 
-    /// Shows the current connection status as a colored dot + label.
-    ///
-    /// Colors:
-    /// - Green  = Live (streaming successfully)
-    /// - Yellow = Connecting (handshake in progress)
-    /// - Orange = Reconnecting (lost connection, retrying)
-    /// - Gray   = Idle / other states
-    private var statusBadge: some View {
-        HStack(spacing: 6) {
-            // Colored dot indicator
-            Circle()
-                .fill(statusDotColor)
-                .frame(width: 8, height: 8)
-
-            // Status text (e.g., "LIVE", "CONNECTING")
-            Text(statusLabel)
-                .fontWeight(.bold)
+    /// Duration formatted as MM:SS or H:MM:SS (hours only when >= 1 hour).
+    private var compactDuration: String {
+        let totalSeconds = Int(viewModel.streamStats.durationMs / 1000)
+        let hours = totalSeconds / 3600
+        let minutes = (totalSeconds % 3600) / 60
+        let seconds = totalSeconds % 60
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
         }
+        return String(format: "%02d:%02d", minutes, seconds)
     }
 
-    /// Pick the right color for the status dot based on connection state.
-    private var statusDotColor: Color {
-        if viewModel.isStreaming {
-            // Brand red (#E53935) when live — matches the app's primary color
-            return Color(red: 229 / 255, green: 57 / 255, blue: 53 / 255)
-        } else if viewModel.isConnecting {
-            return .yellow
-        } else if viewModel.isReconnecting {
-            return .orange
-        } else {
-            return .gray
-        }
+    /// A small colored badge pill used in the right section.
+    private func hudBadge(_ text: String, color: Color) -> some View {
+        Text(text)
+            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+            .foregroundColor(color)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.black.opacity(0.7))
+            .cornerRadius(4)
     }
 
-    /// Pick the right label text for the status badge.
-    private var statusLabel: String {
-        if viewModel.isStreaming {
-            return "LIVE"
-        } else if viewModel.isConnecting {
-            return "CONNECTING"
-        } else if viewModel.isReconnecting {
-            return "RECONNECTING"
-        } else {
-            return "OFFLINE"
+    /// Map protocol badge text to its badge color per spec.
+    /// RTMPS = green, SRT = cyan, RTMP = white.
+    private func protocolBadgeColor(_ badge: String) -> Color {
+        switch badge {
+        case "RTMPS":
+            return .green
+        case "SRT":
+            return .cyan
+        default:
+            return .white
         }
     }
 }

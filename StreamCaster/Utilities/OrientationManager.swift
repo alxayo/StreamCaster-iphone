@@ -10,10 +10,11 @@
 // and unlocked when streaming stops.
 //
 // **How it works:**
-// 1. The user picks their preferred orientation (landscape or portrait)
+// 1. The user picks their preferred orientation (auto, landscape, or portrait)
 //    in Settings before starting a stream.
 // 2. When the stream starts, we read that preference and tell AppDelegate
-//    to lock to that orientation.
+//    to lock to that orientation. In Auto mode, we lock to the current
+//    device orientation at stream-start time.
 // 3. The lock stays in place for the ENTIRE stream — including reconnects.
 // 4. When the stream fully stops (idle), we unlock so the user can
 //    rotate freely again.
@@ -36,26 +37,31 @@ enum OrientationManager {
 
     /// Lock the screen to the user's preferred orientation.
     ///
-    /// Reads the preferred orientation from SettingsRepository and tells
+    /// Reads the preferred orientation mode from SettingsRepository and tells
     /// AppDelegate to restrict rotation to that orientation.
     ///
     /// - Parameter settings: The settings repository that stores the
     ///   user's preferred orientation choice.
     static func lockToPreferredOrientation(settings: SettingsRepository) {
-        // Read the user's preferred orientation from settings.
-        // The value is an Int where:
-        //   0 = portrait
-        //   1 = landscape (default)
-        let preferredOrientation = settings.getPreferredOrientation()
+        let mode = settings.getOrientationMode()
+        let mask: UIInterfaceOrientationMask
 
-        // Convert the Int preference into a UIInterfaceOrientationMask
-        // that iOS understands.
-        let mask = orientationMask(from: preferredOrientation)
+        switch mode {
+        case "portrait":
+            mask = .portrait
+        case "landscape":
+            mask = .landscape
+        default:
+            // Auto mode: lock to the current device orientation at stream start.
+            let current = UIDevice.current.orientation
+            if current.isLandscape {
+                mask = .landscape
+            } else {
+                mask = .portrait
+            }
+        }
 
-        // Tell AppDelegate to lock to this orientation.
         guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else {
-            // If we can't find AppDelegate, there's nothing we can do.
-            // This should never happen in a real app.
             return
         }
 
@@ -73,27 +79,14 @@ enum OrientationManager {
         appDelegate.unlockOrientation()
     }
 
-    // MARK: - Helpers
-
-    /// Convert the Int-based orientation preference from settings into
-    /// a `UIInterfaceOrientationMask`.
-    ///
-    /// - Parameter preference: 0 = portrait, 1 = landscape.
-    /// - Returns: The matching `UIInterfaceOrientationMask`.
-    private static func orientationMask(
-        from preference: Int
-    ) -> UIInterfaceOrientationMask {
-        switch preference {
-        case 0:
-            // Portrait: allow both portrait-up and portrait-upside-down.
-            return .portrait
-        case 1:
-            // Landscape: allow both landscape-left and landscape-right.
-            return .landscape
-        default:
-            // If we get an unexpected value, default to landscape
-            // since most streaming is done in landscape mode.
-            return .landscape
+    /// Returns the orientation mask for idle/preview state based on user preference.
+    /// In Auto mode, returns `.all`. Otherwise returns the locked orientation.
+    static func idleMask(settings: SettingsRepository) -> UIInterfaceOrientationMask {
+        let mode = settings.getOrientationMode()
+        switch mode {
+        case "portrait":  return .portrait
+        case "landscape": return .landscape
+        default:          return .allButUpsideDown
         }
     }
 }
