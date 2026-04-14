@@ -266,6 +266,13 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
             encoderBridge.attachPreview(previewView)
         }
 
+        // Sync the new bridge's orientation to match the current effective
+        // orientation (respects auto/portrait/landscape preference).
+        // Without this, the new bridge defaults to .portrait regardless
+        // of the actual device orientation.
+        lastAppliedOrientation = nil  // Force reapply on new bridge
+        applyEffectiveOrientation()
+
         // Step 3: Transition to .connecting state.
         let connectingSnapshot = await coordinator.startSession(config: config)
         applySnapshot(connectingSnapshot)
@@ -299,6 +306,11 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         if config.videoEnabled {
             let device = resolveCurrentCamera()
             await attachCameraWithStabilization(device)
+            // Re-apply orientation after camera attach — attaching a new
+            // camera creates a fresh AVCaptureConnection which defaults
+            // to .portrait, overriding what we set after bridge swap.
+            lastAppliedOrientation = nil
+            applyEffectiveOrientation()
         }
         if config.audioEnabled {
             encoderBridge.attachAudio()
@@ -435,6 +447,10 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
             encoderBridge.detachCamera()
             await attachCameraWithStabilization(next)
 
+            // New camera = new capture connection with default orientation.
+            lastAppliedOrientation = nil
+            applyEffectiveOrientation()
+
             currentCameraDevice = next
             settingsRepository.setDefaultCameraDevice(next)
             settingsRepository.setDefaultCameraPosition(next.position)
@@ -449,6 +465,10 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
 
             encoderBridge.detachCamera()
             await attachCameraWithStabilization(device)
+
+            // New camera = new capture connection with default orientation.
+            lastAppliedOrientation = nil
+            applyEffectiveOrientation()
 
             currentCameraDevice = device
             settingsRepository.setDefaultCameraDevice(device)
@@ -585,15 +605,19 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
 
         encoderBridge.attachPreview(view)
 
-        // Set the video orientation to match the current device position
-        // so the first frame is correctly oriented.
-        applyCurrentDeviceOrientation()
+        // Apply the user's orientation preference now that the scene is
+        // definitely active. This is the reliable place to enforce
+        // portrait/landscape mode on launch (init may be too early).
+        applyIdleOrientationMask()
 
         // Show a live preview even before streaming starts.
         if shouldManageIdlePreviewCamera {
             let device = resolveCurrentCamera()
             Task {
                 await attachCameraWithStabilization(device)
+                // Re-apply orientation after camera attach, since attaching
+                // a new camera may reset the capture connection's orientation.
+                applyEffectiveOrientation()
             }
         }
     }
@@ -656,8 +680,6 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
 
     /// Observation token for device orientation changes. Cancelled on deinit.
     private var orientationObserver: NSObjectProtocol?
-    /// Debounce work item for orientation changes in Auto mode (300ms).
-    private var orientationDebounceWork: DispatchWorkItem?
 
     /// Attach a camera and apply the user's stabilization preference.
     private func attachCameraWithStabilization(_ device: CameraDevice) async {
@@ -669,6 +691,10 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     }
 
     // MARK: Orientation Helpers
+
+    /// The last orientation we applied to the encoder bridge.
+    /// Used to deduplicate — we skip if the orientation hasn't changed.
+    private var lastAppliedOrientation: AVCaptureVideoOrientation?
 
     /// Start observing device orientation changes and forward them to the
     /// encoder bridge so the capture pipeline rotates frames correctly.
@@ -689,11 +715,16 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         }
     }
 
-    /// Handle an orientation change event with debounce.
+    /// Handle a device orientation change notification.
     ///
-    /// During streaming, orientation is locked so we skip.
-    /// In Auto mode (previewing/idle), we debounce 300ms before
-    /// applying the new orientation to avoid jitter during rotation animation.
+    /// During streaming the orientation is locked — we skip.
+    /// In portrait/landscape mode, we force the locked orientation
+    /// regardless of physical device position.
+    /// In auto mode, we derive from the actual device orientation.
+    ///
+    /// No debounce — on iOS, setting AVCaptureConnection.videoOrientation
+    /// is instant (unlike Android which must restart the camera preview).
+    /// We deduplicate via `lastAppliedOrientation` instead.
     private func handleOrientationChange() {
         let transport = sessionSnapshot.transport
         switch transport {
@@ -705,30 +736,108 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
             return
         }
 
-        orientationDebounceWork?.cancel()
-
-        let work = DispatchWorkItem { [weak self] in
-            self?.applyCurrentDeviceOrientation()
-        }
-        orientationDebounceWork = work
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
+        applyEffectiveOrientation()
     }
 
-    /// Read the current device orientation, convert it to an
-    /// `AVCaptureVideoOrientation`, and forward it to the encoder bridge.
-    private func applyCurrentDeviceOrientation() {
-        let deviceOrientation = UIDevice.current.orientation
+    /// The single source of truth for what orientation the capture pipeline
+    /// should use right now.
+    ///
+    /// Checks the user's orientation preference:
+    /// - **Portrait:** always `.portrait`
+    /// - **Landscape:** uses the current interface orientation direction
+    ///   (left or right) so the correct landscape variant is applied
+    /// - **Auto:** derives from the current device/interface orientation
+    ///
+    /// Deduplicates by skipping if the orientation hasn't changed.
+    /// Call this from any place that needs to ensure orientation is correct:
+    /// `handleOrientationChange`, `attachPreview`, after bridge swap, after
+    /// camera attach.
+    func applyEffectiveOrientation() {
+        let mode = settingsRepository.getOrientationMode()
+        let orientation: AVCaptureVideoOrientation
 
-        // Ignore face-up, face-down, and unknown — these don't map to a
-        // meaningful capture orientation.
-        guard let captureOrientation = Self.captureOrientation(
-            from: deviceOrientation
-        ) else {
-            return
+        switch mode {
+        case "portrait":
+            orientation = .portrait
+        case "landscape":
+            // Use interface orientation to pick the correct landscape direction,
+            // rather than hard-coding landscapeRight which would be wrong when
+            // the device is in landscape-left.
+            orientation = Self.currentLandscapeCaptureOrientation()
+        default:
+            // Auto mode — derive from current device/interface orientation.
+            guard let detected = Self.detectCurrentCaptureOrientation() else {
+                return
+            }
+            orientation = detected
         }
 
-        encoderBridge.setVideoOrientation(captureOrientation)
+        // Deduplicate — skip if orientation hasn't changed.
+        guard orientation != lastAppliedOrientation else { return }
+        lastAppliedOrientation = orientation
+
+        encoderBridge.setVideoOrientation(orientation)
+    }
+
+    /// Apply the user's idle orientation mask to the AppDelegate.
+    ///
+    /// In Auto mode, unlocks rotation (`.allButUpsideDown`).
+    /// In Portrait/Landscape mode, locks to that orientation.
+    /// Also syncs the capture orientation to match.
+    ///
+    /// Call this when transitioning back to idle/stopped, and on app launch
+    /// (once a scene is available) so the user's preference is enforced.
+    private func applyIdleOrientationMask() {
+        let mask = OrientationManager.idleMask(settings: settingsRepository)
+        guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else {
+            return
+        }
+        appDelegate.lockOrientation(mask)
+
+        // Also sync capture orientation to match the user's preference.
+        lastAppliedOrientation = nil
+        applyEffectiveOrientation()
+    }
+
+    /// Detect the current capture orientation from the best available source.
+    ///
+    /// Prefers `windowScene.interfaceOrientation` (reliable even at launch)
+    /// over `UIDevice.current.orientation` (can be `.unknown`/`.faceUp`).
+    /// Returns `nil` only if no meaningful orientation can be determined.
+    static func detectCurrentCaptureOrientation() -> AVCaptureVideoOrientation? {
+        // Prefer interface orientation — it's always set to a usable value,
+        // even at launch when UIDevice.orientation is still .unknown.
+        if let sceneOrientation = currentInterfaceOrientation() {
+            return captureOrientation(fromInterface: sceneOrientation)
+        }
+
+        // Fall back to device orientation.
+        let device = UIDevice.current.orientation
+        return captureOrientation(from: device)
+    }
+
+    /// Get the current landscape capture orientation, preferring the actual
+    /// interface direction. Falls back to `.landscapeRight` if we can't tell.
+    static func currentLandscapeCaptureOrientation() -> AVCaptureVideoOrientation {
+        if let iface = currentInterfaceOrientation() {
+            switch iface {
+            case .landscapeLeft:  return .landscapeRight
+            case .landscapeRight: return .landscapeLeft
+            default: break
+            }
+        }
+        // Device might still be in portrait while user chose landscape mode.
+        // Default to landscapeRight (home button on right / volume buttons on top).
+        return .landscapeRight
+    }
+
+    /// Get the active window scene's interface orientation, if available.
+    static func currentInterfaceOrientation() -> UIInterfaceOrientation? {
+        UIApplication.shared
+            .connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first(where: { $0.activationState == .foregroundActive })?
+            .interfaceOrientation
     }
 
     /// Convert a `UIDeviceOrientation` to the matching
@@ -748,6 +857,20 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         case .landscapeLeft:        return .landscapeRight
         case .landscapeRight:       return .landscapeLeft
         default:                    return nil
+        }
+    }
+
+    /// Convert a `UIInterfaceOrientation` to the matching
+    /// `AVCaptureVideoOrientation`.
+    static func captureOrientation(
+        fromInterface orientation: UIInterfaceOrientation
+    ) -> AVCaptureVideoOrientation? {
+        switch orientation {
+        case .portrait:            return .portrait
+        case .portraitUpsideDown:   return .portraitUpsideDown
+        case .landscapeLeft:       return .landscapeRight
+        case .landscapeRight:      return .landscapeLeft
+        default:                   return nil
         }
     }
 
@@ -815,13 +938,13 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
             // snapshot (e.g., the initial app-launch snapshot is already idle).
             if case .live = previousTransport {
                 UIApplication.shared.isIdleTimerDisabled = false
-                OrientationManager.unlock()
+                applyIdleOrientationMask()
             } else if case .reconnecting = previousTransport {
                 UIApplication.shared.isIdleTimerDisabled = false
-                OrientationManager.unlock()
+                applyIdleOrientationMask()
             } else if case .stopping = previousTransport {
                 UIApplication.shared.isIdleTimerDisabled = false
-                OrientationManager.unlock()
+                applyIdleOrientationMask()
             }
 
         default:
