@@ -130,6 +130,12 @@ final class SRTEncoderBridge: EncoderBridge {
         $latestStats.eraseToAnyPublisher()
     }
 
+    /// Combine publisher that emits whenever the connection state changes.
+    /// The engine subscribes to this during live streaming to detect drops.
+    var isConnectedPublisher: AnyPublisher<Bool, Never> {
+        $isConnected.eraseToAnyPublisher()
+    }
+
     // MARK: - SRTHaishinKit Objects
 
     // These are only available when SRTHaishinKit can be imported.

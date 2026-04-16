@@ -126,6 +126,35 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     /// Queries hardware for available cameras, stabilization modes, etc.
     private let capabilityQuery: DeviceCapabilityQuery
 
+    /// Manages the connection lifecycle: detecting network drops and
+    /// coordinating automatic reconnection with exponential backoff.
+    ///
+    /// The engine wires up `onConnectionEvent` to receive notifications
+    /// when the network changes or when it's time to attempt a reconnect.
+    /// Created fresh for each streaming session (via `DependencyContainer`)
+    /// because `NWPathMonitor.cancel()` is terminal — once cancelled, the
+    /// same monitor instance cannot be restarted.
+    private var connectionManager: ConnectionManager
+
+    /// Subscription that monitors `encoderBridge.isConnectedPublisher`
+    /// during live streaming to detect connection drops.
+    ///
+    /// When `isConnected` transitions from `true` to `false` while in the
+    /// `.live` transport state, the engine initiates a reconnection sequence
+    /// through `ConnectionManager`.
+    ///
+    /// **Current limitation:** The bridges only flip `isConnected` in their
+    /// own connect/disconnect/release methods — not from HaishinKit/SRT
+    /// transport callbacks. Server-initiated drops are detected via
+    /// `NWPathMonitor` (network-level) rather than transport-level callbacks.
+    private var connectionDropCancellable: AnyCancellable?
+
+    /// The URL and stream key of the profile currently being streamed to.
+    /// Stored when a stream starts so the reconnection flow can re-connect
+    /// with the same credentials without re-resolving the profile.
+    private var activeConnectionURL: String?
+    private var activeConnectionStreamKey: String?
+
     /// All camera devices on this hardware, ordered for cycling.
     private(set) var availableCameraDevices: [CameraDevice] = []
 
@@ -164,6 +193,7 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         self.settingsRepository = container.settingsRepository
         self.audioSessionManager = container.audioSessionManager
         self.capabilityQuery = container.deviceCapabilityQuery
+        self.connectionManager = container.connectionManager
         loadCameraDevices()
         observeDeviceOrientation()
     }
@@ -174,13 +204,15 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         profileRepository: EndpointProfileRepository,
         settingsRepository: SettingsRepository,
         audioSessionManager: AudioSessionManagerProtocol,
-        capabilityQuery: DeviceCapabilityQuery? = nil
+        capabilityQuery: DeviceCapabilityQuery? = nil,
+        connectionManager: ConnectionManager? = nil
     ) {
         self.encoderBridge = encoderBridge
         self.profileRepository = profileRepository
         self.settingsRepository = settingsRepository
         self.audioSessionManager = audioSessionManager
         self.capabilityQuery = capabilityQuery ?? AVDeviceCapabilityQuery()
+        self.connectionManager = connectionManager ?? ConnectionManager()
         loadCameraDevices()
         observeDeviceOrientation()
     }
@@ -333,6 +365,8 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
             activeProtocol = nil
             activeVideoCodec = nil
             activeProtocolBadge = nil
+            activeConnectionURL = nil
+            activeConnectionStreamKey = nil
 
             // If encoder setup fails, stop with an encoder error.
             let snapshot = await coordinator.stopSession(reason: .errorEncoder)
@@ -398,6 +432,8 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
             activeProtocol = nil
             activeVideoCodec = nil
             activeProtocolBadge = nil
+            activeConnectionURL = nil
+            activeConnectionStreamKey = nil
 
             let snapshot = await coordinator.stopSession(reason: .errorNetwork)
             applySnapshot(snapshot)
@@ -408,6 +444,16 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         let currentToken = await coordinator.currentSessionToken
         let liveSnapshot = await coordinator.goLive(sessionToken: currentToken)
         applySnapshot(liveSnapshot)
+
+        // Store connection credentials so reconnection can reuse them
+        // without re-resolving the profile from the repository.
+        activeConnectionURL = profile.rtmpUrl
+        activeConnectionStreamKey = profile.streamKey
+
+        // Start network monitoring and wire up the reconnection handler.
+        // ConnectionManager uses NWPathMonitor to detect Wi-Fi/cellular
+        // changes and exponential backoff for retry timing.
+        startConnectionMonitoring()
     }
 
     /// Stop the current stream gracefully.
@@ -437,6 +483,11 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
             await stopRecording()
         }
 
+        // Stop connection monitoring and cancel any pending reconnect attempts.
+        // This must happen BEFORE release() so the ConnectionManager doesn't
+        // try to trigger a reconnect while we're tearing down.
+        stopConnectionMonitoring()
+
         // Tell the encoder to stop sending data and fully release all resources.
         // `release()` is async because it must await the MediaMixer shutdown
         // and SRT/RTMP socket closure. Without awaiting this, the old bridge's
@@ -463,6 +514,8 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         activeProtocol = nil
         activeVideoCodec = nil
         activeProtocolBadge = nil
+        activeConnectionURL = nil
+        activeConnectionStreamKey = nil
 
         // Update state to .stopped with the given reason.
         let snapshot = await coordinator.stopSession(reason: reason)
@@ -709,6 +762,202 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         if shouldManageIdlePreviewCamera {
             encoderBridge.detachCamera()
         }
+    }
+
+    // MARK: - Connection Monitoring & Reconnection
+
+    /// Start monitoring the network and encoder connection for drops.
+    ///
+    /// Called after going live in `startStream()`. This sets up two
+    /// independent detection mechanisms:
+    ///
+    /// 1. **NWPathMonitor** (via `ConnectionManager`) — detects OS-level
+    ///    network changes (Wi-Fi disconnect, cellular handoff, airplane mode).
+    ///    This is the most reliable way to detect network loss on iOS.
+    ///
+    /// 2. **isConnectedPublisher** — monitors the encoder bridge's connection
+    ///    state. If `isConnected` transitions from `true` to `false` while
+    ///    we're live, it means the transport layer dropped.
+    ///
+    /// **Current limitation:** The bridges only flip `isConnected` in their
+    /// own connect/disconnect/release methods. They don't yet listen to
+    /// HaishinKit/SRT transport-level disconnect callbacks, so server-initiated
+    /// drops (e.g., server restart) won't be detected through this path.
+    /// Network-level drops ARE detected via NWPathMonitor.
+    private func startConnectionMonitoring() {
+        // Wire up the ConnectionManager's event callback.
+        // These events arrive from a background queue, so we dispatch
+        // to the main actor for thread safety (the engine is @MainActor).
+        connectionManager.onConnectionEvent = { [weak self] event in
+            Task { @MainActor [weak self] in
+                await self?.handleConnectionEvent(event)
+            }
+        }
+
+        // Start NWPathMonitor to watch for network connectivity changes.
+        connectionManager.startMonitoring()
+
+        // Subscribe to the bridge's connection state. If it drops from
+        // true → false while we're in .live state, trigger reconnection.
+        connectionDropCancellable = encoderBridge.isConnectedPublisher
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] connected in
+                guard let self = self else { return }
+                Task { @MainActor in
+                    await self.handleBridgeConnectionChange(connected)
+                }
+            }
+    }
+
+    /// Stop monitoring and cancel any pending reconnection attempts.
+    ///
+    /// Called by `stopStream()` before releasing the bridge. This ensures
+    /// the ConnectionManager doesn't try to trigger a reconnect while we're
+    /// tearing down the bridge.
+    private func stopConnectionMonitoring() {
+        // Cancel the isConnected subscription so bridge state changes
+        // during release() don't trigger reconnection.
+        connectionDropCancellable?.cancel()
+        connectionDropCancellable = nil
+
+        // Stop the NWPathMonitor and cancel any pending reconnect timers.
+        connectionManager.cancelReconnect()
+        connectionManager.stopMonitoring()
+
+        // Clear the event callback to break the retain cycle.
+        connectionManager.onConnectionEvent = nil
+
+        // Create a fresh ConnectionManager for the next streaming session.
+        // NWPathMonitor.cancel() is terminal — once cancelled, the same
+        // monitor instance cannot be restarted. So we replace the entire
+        // ConnectionManager to get a fresh NWPathMonitor.
+        connectionManager = ConnectionManager(
+            reconnectPolicy: DependencyContainer.shared.reconnectPolicy
+        )
+    }
+
+    /// Handle a connection event from the ConnectionManager.
+    ///
+    /// The ConnectionManager emits events for network changes and reconnect
+    /// timing. The engine translates these into state transitions:
+    ///
+    /// - `.reconnecting(attempt, ms)` — Update the transport state to
+    ///   `.reconnecting` so the UI shows the retry count and wait time.
+    /// - `.connected` (misleadingly named — means "time to retry") —
+    ///   Attempt to reconnect using the stored URL and stream key.
+    /// - `.disconnected(reason)` — Retries exhausted or auth failure.
+    ///   Stop the stream with the given reason.
+    /// - `.networkAvailable` / `.networkUnavailable` — Informational.
+    ///   Network restoration triggers an immediate retry inside
+    ///   ConnectionManager (handled internally).
+    private func handleConnectionEvent(_ event: ConnectionManager.ConnectionEvent) async {
+        switch event {
+        case .reconnecting(let attempt, let nextRetryMs):
+            // Update the transport state so the UI shows "Reconnecting…"
+            // with the attempt count and estimated wait time.
+            let snapshot = await coordinator.updateTransport(
+                .reconnecting(attempt: attempt, nextRetryMs: Int64(nextRetryMs))
+            )
+            applySnapshot(snapshot)
+
+        case .connected:
+            // ConnectionManager says "try now" — attempt to reconnect
+            // using the same URL and stream key from the current session.
+            await attemptReconnect()
+
+        case .disconnected(let reason):
+            // Retries exhausted or auth failure. Stop the stream entirely.
+            // This will clean up monitoring, release the bridge, and
+            // transition to .stopped → .idle.
+            await stopStream(reason: reason)
+
+        case .networkAvailable:
+            // NWPathMonitor detected network restoration. ConnectionManager
+            // handles this internally by cancelling the current timer and
+            // scheduling an immediate retry. Nothing for the engine to do.
+            break
+
+        case .networkUnavailable:
+            // Network dropped. The actual reconnection is triggered by
+            // handleBridgeConnectionChange() when isConnected goes false,
+            // or by NWPathMonitor → ConnectionManager's internal handling.
+            // We don't start reconnection here because NWPathMonitor is
+            // advisory — a transient path change doesn't always mean the
+            // stream is dead.
+            break
+        }
+    }
+
+    /// React to the encoder bridge's connection state changing.
+    ///
+    /// If the connection drops from `true` to `false` while we're in the
+    /// `.live` transport state, this triggers the reconnection sequence
+    /// through `ConnectionManager`.
+    ///
+    /// - Parameter connected: The new connection state from the bridge.
+    private func handleBridgeConnectionChange(_ connected: Bool) async {
+        // Only care about drops during live streaming.
+        let transport = await coordinator.snapshot.transport
+        guard !connected, transport == .live else { return }
+
+        // The connection dropped while we were live. Start the reconnection
+        // sequence — ConnectionManager will calculate delays and emit
+        // .reconnecting events until success or max retries reached.
+        connectionManager.handleConnectionFailure(reason: .errorNetwork)
+    }
+
+    /// Attempt to re-establish the connection during a reconnect sequence.
+    ///
+    /// Called by `handleConnectionEvent(.connected)` when the ConnectionManager
+    /// decides it's time to try again. This reuses the existing bridge
+    /// (no new bridge creation) and calls disconnect → connect with the
+    /// stored URL and stream key.
+    ///
+    /// If the reconnection succeeds (bridge becomes connected within 8s),
+    /// the ConnectionManager's reconnect loop is cancelled and the engine
+    /// returns to `.live` state. If it fails, the ConnectionManager will
+    /// schedule another attempt (up to its max retry count).
+    private func attemptReconnect() async {
+        guard let url = activeConnectionURL,
+              let streamKey = activeConnectionStreamKey else {
+            // No stored credentials — can't reconnect. Stop the stream.
+            await stopStream(reason: .errorNetwork)
+            return
+        }
+
+        // Disconnect the old transport before reconnecting.
+        // This ensures the SRT/RTMP socket is properly closed before
+        // we open a new one. Note: disconnect() is fire-and-forget,
+        // but the bridge's connect() creates a new Task so there's
+        // no strict ordering requirement on the socket close.
+        encoderBridge.disconnect()
+
+        // Small delay to let the disconnect propagate through the bridge.
+        // Without this, the new connect() might race with the old socket
+        // teardown. 500ms is enough for SRT/RTMP socket shutdown.
+        try? await Task.sleep(nanoseconds: 500_000_000)
+
+        // Attempt reconnection with the same URL and stream key.
+        encoderBridge.connect(url: url, streamKey: streamKey)
+
+        // Wait for the connection to succeed (same timeout as initial connect).
+        let reconnected = await waitForEncoderConnection(timeoutMs: 8_000)
+
+        if reconnected {
+            // Success! Cancel the reconnect loop and return to .live state.
+            connectionManager.cancelReconnect()
+
+            let token = await coordinator.currentSessionToken
+            let snapshot = await coordinator.goLive(sessionToken: token)
+            applySnapshot(snapshot)
+
+            // Request a keyframe so new viewers / the server can decode
+            // immediately without waiting for the next natural I-frame.
+            await encoderBridge.requestKeyFrame()
+        }
+        // If reconnection failed, do nothing here — the ConnectionManager
+        // will schedule the next attempt and emit another .reconnecting event.
     }
 
     /// Revive the camera preview after a stream stops.

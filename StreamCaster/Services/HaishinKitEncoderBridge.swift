@@ -46,6 +46,12 @@ final class HaishinKitEncoderBridge: EncoderBridge {
         $latestStats.eraseToAnyPublisher()
     }
 
+    /// Combine publisher that emits whenever the connection state changes.
+    /// The engine subscribes to this during live streaming to detect drops.
+    var isConnectedPublisher: AnyPublisher<Bool, Never> {
+        $isConnected.eraseToAnyPublisher()
+    }
+
     /// Whether a local MP4 recording is currently in progress.
     /// Updated whenever recording starts or stops.
     private(set) var isRecording = false

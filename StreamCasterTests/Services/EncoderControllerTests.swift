@@ -69,6 +69,12 @@ private final class MockEncoderBridge: EncoderBridge, @unchecked Sendable {
 
     var isConnected: Bool = false
 
+    /// Combine publisher for connection state changes.
+    @Published var _isConnectedValue: Bool = false
+    var isConnectedPublisher: AnyPublisher<Bool, Never> {
+        $_isConnectedValue.eraseToAnyPublisher()
+    }
+
     // -------------------------------------------------------------------------
     // MARK: Camera (no-op implementations)
     // -------------------------------------------------------------------------

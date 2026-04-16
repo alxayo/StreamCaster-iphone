@@ -18,7 +18,12 @@ final class StubEncoderBridge: EncoderBridge {
     // MARK: - State
 
     /// Tracks whether we're "connected" (always fake in this stub).
-    private(set) var isConnected: Bool = false
+    @Published private(set) var isConnected: Bool = false
+
+    /// Combine publisher that emits whenever the connection state changes.
+    var isConnectedPublisher: AnyPublisher<Bool, Never> {
+        $isConnected.eraseToAnyPublisher()
+    }
 
     /// Stub stats — never changes, always returns defaults.
     @Published private(set) var latestStats = StreamStats()

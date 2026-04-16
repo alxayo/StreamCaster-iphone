@@ -233,6 +233,12 @@ private final class StubEncoderBridgeForTests: EncoderBridge {
     /// Always returns false — we're never "connected" in tests.
     var isConnected: Bool { false }
 
+    /// Combine publisher for connection state changes.
+    @Published var _isConnectedValue: Bool = false
+    var isConnectedPublisher: AnyPublisher<Bool, Never> {
+        $_isConnectedValue.eraseToAnyPublisher()
+    }
+
     // MARK: - Encoder Configuration (no-ops)
 
     /// No-op: codec selection doesn't matter for ABR tests.

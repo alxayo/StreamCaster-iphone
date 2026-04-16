@@ -52,6 +52,24 @@ protocol EncoderBridge: AnyObject {
     /// Whether the encoder is currently connected to the RTMP server.
     var isConnected: Bool { get }
 
+    /// Combine publisher that emits whenever the connection state changes.
+    ///
+    /// The engine subscribes to this during live streaming to detect when
+    /// the connection drops (value goes from `true` to `false`). This
+    /// triggers the reconnection flow managed by `ConnectionManager`.
+    ///
+    /// Both real bridges (`HaishinKitEncoderBridge` and `SRTEncoderBridge`)
+    /// implement this by exposing their `@Published isConnected` property.
+    ///
+    /// **Current limitation:** The bridges only flip `isConnected` in their
+    /// own `connect()`, `disconnect()`, and `release()` methods. They do NOT
+    /// yet listen to HaishinKit/SRT transport-level disconnect callbacks.
+    /// This means server-initiated drops (e.g., server restart) may not be
+    /// detected until a future update adds transport callback integration.
+    /// Network-level drops (Wi-Fi/cellular loss) are detected separately
+    /// by `ConnectionManager`'s `NWPathMonitor`.
+    var isConnectedPublisher: AnyPublisher<Bool, Never> { get }
+
     // MARK: Encoder Configuration
 
     /// Configure which video codec the encoder should use.
