@@ -155,6 +155,12 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     private var activeConnectionURL: String?
     private var activeConnectionStreamKey: String?
 
+    /// The maximum number of reconnection attempts configured by the user.
+    /// Read from `settingsRepository` when monitoring starts. Stored so
+    /// the engine can include it in `TransportState.reconnecting` events
+    /// and the UI can show "attempt 3 of 10".
+    private var activeReconnectMaxAttempts: Int = 10
+
     /// All camera devices on this hardware, ordered for cycling.
     private(set) var availableCameraDevices: [CameraDevice] = []
 
@@ -785,6 +791,21 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     /// drops (e.g., server restart) won't be detected through this path.
     /// Network-level drops ARE detected via NWPathMonitor.
     private func startConnectionMonitoring() {
+        // Read the user's configured max reconnect attempts from settings.
+        // This is stored so we can include it in TransportState.reconnecting
+        // events — the UI needs it to show "attempt 3 of 10".
+        activeReconnectMaxAttempts = settingsRepository.getReconnectMaxAttempts()
+
+        // Create a fresh ConnectionManager with a policy that respects
+        // the user's configured max attempts. We create a new one each time
+        // because NWPathMonitor.cancel() is terminal — once cancelled, the
+        // same monitor instance cannot be restarted.
+        connectionManager = ConnectionManager(
+            reconnectPolicy: ExponentialBackoffReconnectPolicy(
+                maxAttempts: activeReconnectMaxAttempts
+            )
+        )
+
         // Wire up the ConnectionManager's event callback.
         // These events arrive from a background queue, so we dispatch
         // to the main actor for thread safety (the engine is @MainActor).
@@ -832,9 +853,9 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         // NWPathMonitor.cancel() is terminal — once cancelled, the same
         // monitor instance cannot be restarted. So we replace the entire
         // ConnectionManager to get a fresh NWPathMonitor.
-        connectionManager = ConnectionManager(
-            reconnectPolicy: DependencyContainer.shared.reconnectPolicy
-        )
+        // startConnectionMonitoring() will replace this again with the
+        // user's configured maxAttempts, so we use a default policy here.
+        connectionManager = ConnectionManager()
     }
 
     /// Handle a connection event from the ConnectionManager.
@@ -855,9 +876,13 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         switch event {
         case .reconnecting(let attempt, let nextRetryMs):
             // Update the transport state so the UI shows "Reconnecting…"
-            // with the attempt count and estimated wait time.
+            // with the attempt count, max attempts, and estimated wait time.
             let snapshot = await coordinator.updateTransport(
-                .reconnecting(attempt: attempt, nextRetryMs: Int64(nextRetryMs))
+                .reconnecting(
+                    attempt: attempt,
+                    maxAttempts: activeReconnectMaxAttempts,
+                    nextRetryMs: Int64(nextRetryMs)
+                )
             )
             applySnapshot(snapshot)
 

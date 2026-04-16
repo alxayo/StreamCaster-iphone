@@ -83,6 +83,14 @@ struct StreamView: View {
                         .padding(.horizontal)
                 }
 
+                // Reconnection progress banner — shows attempt count,
+                // optional max, countdown to next retry, and a cancel button.
+                if viewModel.isReconnecting {
+                    reconnectionBanner()
+                        .padding(.top, 8)
+                        .padding(.horizontal)
+                }
+
                 Spacer()
             }
             .padding(.top, 8)
@@ -131,6 +139,62 @@ struct StreamView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .background(Color.red.opacity(0.82))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    // MARK: - Reconnection Banner
+
+    /// Orange banner shown during automatic reconnection. Displays:
+    /// - Current attempt number (and total if finite)
+    /// - Seconds until next retry
+    /// - A cancel button to abort reconnection and stop the stream
+    private func reconnectionBanner() -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "arrow.triangle.2.circlepath")
+                .foregroundColor(.white)
+
+            VStack(alignment: .leading, spacing: 2) {
+                // "Attempt 3 of 10" or "Attempt 3" for unlimited
+                if viewModel.reconnectMaxAttempts < Int.max {
+                    Text("Attempt \(viewModel.reconnectAttempt) of \(viewModel.reconnectMaxAttempts)")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white)
+                } else {
+                    Text("Attempt \(viewModel.reconnectAttempt)")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white)
+                }
+
+                // "Next retry in 6s"
+                if viewModel.reconnectCountdownSeconds > 0 {
+                    Text("Next retry in \(viewModel.reconnectCountdownSeconds)s")
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(.white.opacity(0.8))
+                } else {
+                    Text("Retrying now…")
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(.white.opacity(0.8))
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            // Cancel button — stops the stream entirely.
+            Button {
+                viewModel.stopStream()
+            } label: {
+                Text("Cancel")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Color.white.opacity(0.25))
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color.orange.opacity(0.82))
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 

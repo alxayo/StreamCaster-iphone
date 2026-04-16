@@ -50,14 +50,15 @@ final class StreamStateTests: XCTestCase {
 
     // MARK: - TransportState — reconnecting
 
-    /// `.reconnecting` stores the attempt number and next-retry delay.
-    /// The UI reads these to show "Reconnecting (attempt 3, retrying in 5 s)".
-    func testTransportStateReconnectingStoresAttemptAndDelay() {
-        let state = TransportState.reconnecting(attempt: 3, nextRetryMs: 5000)
+    /// `.reconnecting` stores the attempt number, max attempts, and next-retry delay.
+    /// The UI reads these to show "Reconnecting (attempt 3 of 10, retrying in 5 s)".
+    func testTransportStateReconnectingStoresAttemptMaxAndDelay() {
+        let state = TransportState.reconnecting(attempt: 3, maxAttempts: 10, nextRetryMs: 5000)
 
         // Extract associated values with pattern matching.
-        if case .reconnecting(let attempt, let nextRetryMs) = state {
+        if case .reconnecting(let attempt, let maxAttempts, let nextRetryMs) = state {
             XCTAssertEqual(attempt, 3)
+            XCTAssertEqual(maxAttempts, 10)
             XCTAssertEqual(nextRetryMs, 5000)
         } else {
             XCTFail("Expected .reconnecting but got \(state)")
@@ -66,23 +67,40 @@ final class StreamStateTests: XCTestCase {
 
     /// Two `.reconnecting` values with the same data are equal.
     func testTransportStateReconnectingEqualWhenSameValues() {
-        let a = TransportState.reconnecting(attempt: 1, nextRetryMs: 2000)
-        let b = TransportState.reconnecting(attempt: 1, nextRetryMs: 2000)
+        let a = TransportState.reconnecting(attempt: 1, maxAttempts: 10, nextRetryMs: 2000)
+        let b = TransportState.reconnecting(attempt: 1, maxAttempts: 10, nextRetryMs: 2000)
         XCTAssertEqual(a, b)
     }
 
     /// Different attempt counts make the states NOT equal.
     func testTransportStateReconnectingNotEqualDifferentAttempt() {
-        let a = TransportState.reconnecting(attempt: 1, nextRetryMs: 2000)
-        let b = TransportState.reconnecting(attempt: 2, nextRetryMs: 2000)
+        let a = TransportState.reconnecting(attempt: 1, maxAttempts: 10, nextRetryMs: 2000)
+        let b = TransportState.reconnecting(attempt: 2, maxAttempts: 10, nextRetryMs: 2000)
         XCTAssertNotEqual(a, b)
     }
 
     /// Different retry delays make the states NOT equal.
     func testTransportStateReconnectingNotEqualDifferentDelay() {
-        let a = TransportState.reconnecting(attempt: 1, nextRetryMs: 1000)
-        let b = TransportState.reconnecting(attempt: 1, nextRetryMs: 5000)
+        let a = TransportState.reconnecting(attempt: 1, maxAttempts: 10, nextRetryMs: 1000)
+        let b = TransportState.reconnecting(attempt: 1, maxAttempts: 10, nextRetryMs: 5000)
         XCTAssertNotEqual(a, b)
+    }
+
+    /// Different max attempts make the states NOT equal.
+    func testTransportStateReconnectingNotEqualDifferentMaxAttempts() {
+        let a = TransportState.reconnecting(attempt: 1, maxAttempts: 5, nextRetryMs: 2000)
+        let b = TransportState.reconnecting(attempt: 1, maxAttempts: 10, nextRetryMs: 2000)
+        XCTAssertNotEqual(a, b)
+    }
+
+    /// Unlimited reconnect attempts use Int.max for maxAttempts.
+    func testTransportStateReconnectingUnlimitedMaxAttempts() {
+        let state = TransportState.reconnecting(attempt: 1, maxAttempts: Int.max, nextRetryMs: 3000)
+        if case .reconnecting(_, let maxAttempts, _) = state {
+            XCTAssertEqual(maxAttempts, Int.max)
+        } else {
+            XCTFail("Expected .reconnecting")
+        }
     }
 
     // MARK: - TransportState — stopped

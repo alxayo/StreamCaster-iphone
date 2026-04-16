@@ -41,6 +41,22 @@ final class StreamViewModel: ObservableObject {
     /// `true` when the connection was lost and the engine is retrying
     @Published private(set) var isReconnecting: Bool = false
 
+    // ── Reconnection progress properties ──
+    // Exposed as individual published properties so SwiftUI views can
+    // bind directly without destructuring `TransportState`.
+
+    /// Which retry attempt the engine is on right now (1, 2, 3 …).
+    /// Only meaningful when `isReconnecting` is `true`.
+    @Published private(set) var reconnectAttempt: Int = 0
+
+    /// Total number of retry attempts configured by the user.
+    /// `Int.max` means unlimited. Only meaningful when `isReconnecting`.
+    @Published private(set) var reconnectMaxAttempts: Int = 0
+
+    /// Seconds remaining until the next retry attempt.
+    /// Decremented once per second by an internal timer.
+    @Published private(set) var reconnectCountdownSeconds: Int = 0
+
     /// `true` when the microphone is muted
     @Published private(set) var isMuted: Bool = false
 
@@ -116,6 +132,10 @@ final class StreamViewModel: ObservableObject {
     /// When the ViewModel is deallocated, these are cancelled automatically.
     private var cancellables = Set<AnyCancellable>()
 
+    /// Timer that fires once per second to decrement `reconnectCountdownSeconds`.
+    /// Created when entering reconnecting state, invalidated when leaving.
+    private var countdownTimer: Timer?
+
     // MARK: - Init
 
     /// Create a StreamViewModel that observes the given engine.
@@ -144,10 +164,23 @@ final class StreamViewModel: ObservableObject {
                 self.isStreaming = snapshot.transport == .live
                 self.isConnecting = snapshot.transport == .connecting
 
-                // Check if we're reconnecting (pattern match the enum)
-                if case .reconnecting = snapshot.transport {
+                // Check if we're reconnecting and extract metadata
+                if case .reconnecting(let attempt, let maxAttempts, let nextRetryMs) = snapshot.transport {
                     self.isReconnecting = true
+                    self.reconnectAttempt = attempt
+                    self.reconnectMaxAttempts = maxAttempts
+                    // Convert milliseconds to whole seconds for the countdown.
+                    // Each new .reconnecting event resets the countdown.
+                    self.reconnectCountdownSeconds = max(0, Int(nextRetryMs / 1000))
+                    self.startCountdownTimer()
                 } else {
+                    // Not reconnecting — clear metadata and stop timer.
+                    if self.isReconnecting {
+                        self.stopCountdownTimer()
+                        self.reconnectAttempt = 0
+                        self.reconnectMaxAttempts = 0
+                        self.reconnectCountdownSeconds = 0
+                    }
                     self.isReconnecting = false
                 }
 
@@ -252,6 +285,35 @@ final class StreamViewModel: ObservableObject {
         engine.$activeProtocolBadge
             .receive(on: DispatchQueue.main)
             .assign(to: &$activeProtocolBadge)
+    }
+
+    // MARK: - Reconnection Countdown Timer
+
+    /// Start a 1-second repeating timer that decrements
+    /// `reconnectCountdownSeconds`. Each tick reduces the displayed
+    /// "Next retry in Xs" value by one. The timer is cosmetic — the
+    /// actual retry is scheduled by `ConnectionManager`. A new
+    /// `.reconnecting` event from the engine resets the countdown.
+    private func startCountdownTimer() {
+        // Avoid duplicate timers if called rapidly.
+        countdownTimer?.invalidate()
+        countdownTimer = Timer.scheduledTimer(
+            withTimeInterval: 1.0,
+            repeats: true
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                if self.reconnectCountdownSeconds > 0 {
+                    self.reconnectCountdownSeconds -= 1
+                }
+            }
+        }
+    }
+
+    /// Stop and discard the countdown timer.
+    private func stopCountdownTimer() {
+        countdownTimer?.invalidate()
+        countdownTimer = nil
     }
 
     // MARK: - Actions
@@ -462,10 +524,14 @@ final class StreamViewModel: ObservableObject {
             return "Connecting..."
         case .live:
             return "Live"
-        case .reconnecting(let attempt, _):
-            // Show which retry attempt we're on so the user knows
-            // the app is still trying.
-            return "Reconnecting (attempt \(attempt))..."
+        case .reconnecting(let attempt, let maxAttempts, _):
+            // Show progress like "Reconnecting (3 of 10)..." when max is
+            // finite, or "Reconnecting (attempt 3)..." when unlimited.
+            if maxAttempts < Int.max {
+                return "Reconnecting (\(attempt) of \(maxAttempts))..."
+            } else {
+                return "Reconnecting (attempt \(attempt))..."
+            }
         case .stopping:
             return "Stopping..."
         case .stopped:

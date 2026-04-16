@@ -50,6 +50,11 @@ struct StreamHudView: View {
                     hudBadge("REC", color: .red)
                 }
 
+                // Pulsing orange badge while reconnection is in progress.
+                if viewModel.isReconnecting {
+                    hudBadge("RECONNECTING", color: .orange)
+                }
+
                 if viewModel.streamStats.thermalLevel == .fair {
                     hudBadge("MODERATE", color: .yellow)
                 } else if viewModel.streamStats.thermalLevel == .serious {

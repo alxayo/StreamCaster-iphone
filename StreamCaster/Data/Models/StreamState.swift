@@ -15,8 +15,9 @@ enum TransportState: Equatable {
 
     /// Connection was lost; automatically retrying.
     /// - `attempt`: which retry attempt we are on (1, 2, 3 …)
+    /// - `maxAttempts`: total number of retries configured (Int.max = unlimited)
     /// - `nextRetryMs`: milliseconds until the next retry fires
-    case reconnecting(attempt: Int, nextRetryMs: Int64)
+    case reconnecting(attempt: Int, maxAttempts: Int, nextRetryMs: Int64)
 
     /// Gracefully shutting down — flushing remaining data before disconnecting.
     case stopping
