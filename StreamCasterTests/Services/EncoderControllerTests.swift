@@ -190,7 +190,8 @@ private final class MockEncoderBridge: EncoderBridge, @unchecked Sendable {
     // MARK: Cleanup (no-op implementation)
     // -------------------------------------------------------------------------
 
-    func release() {
+    // async to match updated EncoderBridge protocol signature
+    func release() async {
         callLog.append("release")
     }
 

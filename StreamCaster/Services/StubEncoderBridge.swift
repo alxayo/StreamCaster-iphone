@@ -138,7 +138,7 @@ final class StubEncoderBridge: EncoderBridge {
     // MARK: - Cleanup
 
     /// Release all resources (in the stub, just reset state and log).
-    func release() {
+    func release() async {
         isConnected = false
         isRecording = false
         sampleBufferTap = nil

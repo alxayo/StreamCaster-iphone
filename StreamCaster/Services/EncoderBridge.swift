@@ -193,9 +193,15 @@ protocol EncoderBridge: AnyObject {
 
     // MARK: Cleanup
 
-    /// Release all resources: stop capture, close connections, free encoders.
-    /// Call this when the streaming engine is being torn down.
-    func release()
+    /// Release **all** resources owned by this bridge: stop the MediaMixer's
+    /// AVCaptureSession, close SRT/RTMP sockets, and free encoders.
+    ///
+    /// This method is `async` because the underlying cleanup (stopping the
+    /// mixer, closing network connections) is asynchronous. Callers **must**
+    /// await it so that every resource is fully released before the bridge is
+    /// discarded. Without awaiting, the old mixer's capture session stays
+    /// running and prevents the next bridge from accessing the camera.
+    func release() async
 }
 
 // MARK: - EncoderBridge Default Implementations

@@ -269,8 +269,8 @@ private final class StubEncoderBridgeForTests: EncoderBridge {
 
     // MARK: - Cleanup (no-op)
 
-    /// No-op: nothing to release in tests.
-    func release() {}
+    /// No-op: nothing to release in tests. Async to match updated EncoderBridge protocol signature.
+    func release() async {}
 
     // MARK: - Preview (no-ops)
 

@@ -603,20 +603,49 @@ final class SRTEncoderBridge: EncoderBridge {
 
     // MARK: - Cleanup
 
-    /// Release all resources: stop capture, close connections, free encoders.
+    /// Release **all** resources owned by this bridge — fully and synchronously
+    /// (from the caller's perspective, since this is `async`).
     ///
-    /// Call this when the streaming engine is being torn down (e.g., when
-    /// the app is backgrounded or the user leaves the streaming screen).
-    func release() {
+    /// This is the proper teardown method. It **must** be awaited so that
+    /// every resource is freed before the bridge reference is discarded.
+    /// The critical step is `mixer.stopRunning()`: the MediaMixer owns an
+    /// AVCaptureSession, and iOS only allows one active capture session at a
+    /// time. If we don't await this, the old session stays running and the
+    /// next bridge's `mixer.startRunning()` silently fails — which was the
+    /// root cause of SRT reconnection failures.
+    ///
+    /// Cleanup order:
+    /// 1. Detach the preview (fire-and-forget; just removes the UI layer).
+    /// 2. Close the SRT stream (stops the MPEG-TS muxer and encoding).
+    /// 3. Close the SRT connection (closes the SRT socket).
+    /// 4. Stop the stats polling timer.
+    /// 5. Mark ourselves as disconnected.
+    /// 6. Stop the mixer's capture session — **the most important step**.
+    /// 7. Release the fallback bridge (no-op in production, but keeps the
+    ///    contract consistent).
+    func release() async {
         #if canImport(HaishinKit) && canImport(SRTHaishinKit)
+        // 1. Detach the preview layer from the UI.
         detachPreview()
-        disconnect()
-        // Stop the mixer's capture session to release camera/mic resources.
-        Task {
-            await mixer.stopRunning()
-        }
+
+        // 2-3. Close the SRT stream and socket. We await these so the server
+        //       sees a clean disconnect and the local socket is freed before
+        //       the next bridge tries to bind one.
+        await stream.close()
+        await connection.close()
+
+        // 4-5. Stop stats polling and mark disconnected on the main actor.
+        stopStatsTimer()
+        isConnected = false
+
+        // 6. Stop the mixer's AVCaptureSession. Without this await, the old
+        //    capture session stays running and blocks the next bridge from
+        //    accessing the camera hardware.
+        await mixer.stopRunning()
         #endif
-        fallback.release()
+
+        // 7. Release the fallback bridge.
+        await fallback.release()
     }
 
     // MARK: - URL Construction

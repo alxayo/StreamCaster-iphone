@@ -248,11 +248,14 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         // (e.g., SRT). This also means switching endpoints between RTMP and
         // SRT "just works" — no need to manually clean up the old bridge.
 
-        // Detach preview from the old bridge before swapping.
-        // The old bridge's mixer/stream still holds a reference to the
-        // MTHKView, which would cause a black screen if not released.
-        encoderBridge.detachPreview()
-        encoderBridge.detachCamera()
+        // Fully release the old bridge before creating a new one.
+        // This is a safety net — stopStream() should have already called
+        // release(), but if the user starts a new stream very quickly or
+        // stopStream() was skipped, this ensures the old bridge's mixer
+        // and SRT/RTMP sockets are fully shut down before we create a
+        // fresh bridge. Without this, two MediaMixer instances would
+        // compete for camera hardware and SRT sockets could conflict.
+        await encoderBridge.release()
 
         self.encoderBridge = EncoderBridgeFactory.makeBridge(for: profile)
 
@@ -372,10 +375,15 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
             await stopRecording()
         }
 
-        // Tell the encoder to stop sending data and disconnect.
+        // Tell the encoder to stop sending data and fully release all resources.
+        // `release()` is async because it must await the MediaMixer shutdown
+        // and SRT/RTMP socket closure. Without awaiting this, the old bridge's
+        // AVCaptureSession stays running and blocks the next bridge from
+        // accessing the camera — this was the root cause of SRT reconnection
+        // failures.
         encoderBridge.detachCamera()
         encoderBridge.detachAudio()
-        encoderBridge.disconnect()
+        await encoderBridge.release()
 
         // Stop forwarding stats and reset the display to defaults.
         statsCancellable?.cancel()
