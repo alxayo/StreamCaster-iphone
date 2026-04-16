@@ -104,3 +104,64 @@ enum SRTMode: String, Codable, CaseIterable, Sendable {
         }
     }
 }
+
+// MARK: - SRTKeyLength
+
+/// AES encryption key length for SRT connections.
+///
+/// When an SRT passphrase is set, the stream is encrypted using AES
+/// (Advanced Encryption Standard). The key length determines the strength
+/// of the encryption:
+///
+/// | Key Length | AES Standard | Key Size | Security Level |
+/// |-----------|-------------|----------|----------------|
+/// | 16 bytes  | AES-128     | 128-bit  | Standard       |
+/// | 24 bytes  | AES-192     | 192-bit  | Enhanced       |
+/// | 32 bytes  | AES-256     | 256-bit  | Maximum        |
+///
+/// **Default: AES-256** — the current industry standard for secure
+/// video transport. AES-256 has negligible performance overhead on
+/// modern hardware (Apple Silicon includes hardware AES acceleration).
+///
+/// This value is passed as `?pbkeylen=N` in the SRT URL, which maps to
+/// the `SRTO_PBKEYLEN` socket option in libsrt.
+enum SRTKeyLength: String, Codable, CaseIterable, Sendable {
+    /// AES-128 encryption (16-byte key). Fastest, but lowest security.
+    case aes128
+
+    /// AES-192 encryption (24-byte key). Middle ground.
+    case aes192
+
+    /// AES-256 encryption (32-byte key). Industry standard — recommended.
+    case aes256
+
+    /// Human-readable display name for the settings UI picker.
+    var displayName: String {
+        switch self {
+        case .aes128: return "AES-128"
+        case .aes192: return "AES-192"
+        case .aes256: return "AES-256"
+        }
+    }
+
+    /// Short explanation shown below the picker option.
+    var subtitle: String {
+        switch self {
+        case .aes128: return "128-bit — standard security"
+        case .aes192: return "192-bit — enhanced security"
+        case .aes256: return "256-bit — maximum security (recommended)"
+        }
+    }
+
+    /// The value to pass as `pbkeylen` in the SRT URL.
+    ///
+    /// libsrt accepts exactly three values: 16, 24, or 32.
+    /// These correspond to AES-128, AES-192, and AES-256.
+    var pbKeyLenValue: Int {
+        switch self {
+        case .aes128: return 16
+        case .aes192: return 24
+        case .aes256: return 32
+        }
+    }
+}

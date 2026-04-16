@@ -66,6 +66,11 @@ class EndpointSettingsViewModel: ObservableObject {
     /// When set, the SRT connection uses AES encryption to protect the stream.
     @Published var srtPassphrase: String = ""
 
+    /// AES encryption key length for SRT connections.
+    /// Only meaningful when `srtPassphrase` is non-empty.
+    /// Defaults to `.aes256` (256-bit — the current industry standard).
+    @Published var srtKeyLength: SRTKeyLength = .aes256
+
     /// SRT latency in milliseconds — buffer for network jitter.
     /// Higher values = more resilience but more delay.
     /// Default 120ms is a good balance for most networks.
@@ -174,6 +179,7 @@ class EndpointSettingsViewModel: ObservableObject {
             videoCodec: videoCodec,
             srtMode: srtMode,
             srtPassphrase: srtPassphrase.isEmpty ? nil : srtPassphrase,
+            srtKeyLength: srtKeyLength,
             srtLatencyMs: srtLatencyMs,
             srtStreamId: srtStreamId.isEmpty ? nil : srtStreamId
         )
@@ -268,6 +274,7 @@ class EndpointSettingsViewModel: ObservableObject {
         // doesn't lose the user's previous SRT settings.
         srtMode = profile.srtMode
         srtPassphrase = profile.srtPassphrase ?? ""
+        srtKeyLength = profile.srtKeyLength
         srtLatencyMs = profile.srtLatencyMs
         srtStreamId = profile.srtStreamId ?? ""
     }
@@ -286,6 +293,7 @@ class EndpointSettingsViewModel: ObservableObject {
         // Reset SRT fields to sensible defaults for a new profile.
         srtMode = .caller
         srtPassphrase = ""
+        srtKeyLength = .aes256
         srtLatencyMs = 120
         srtStreamId = ""
         saveError = nil
@@ -321,6 +329,7 @@ class EndpointSettingsViewModel: ObservableObject {
             videoCodec: videoCodec,
             srtMode: srtMode,
             srtPassphrase: srtPassphrase.isEmpty ? nil : srtPassphrase,
+            srtKeyLength: srtKeyLength,
             srtLatencyMs: srtLatencyMs,
             srtStreamId: srtStreamId.isEmpty ? nil : srtStreamId
         )

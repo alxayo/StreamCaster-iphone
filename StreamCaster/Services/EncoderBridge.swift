@@ -175,11 +175,14 @@ protocol EncoderBridge: AnyObject {
     /// - Parameters:
     ///   - mode: SRT connection mode (caller, listener, or rendezvous).
     ///   - passphrase: Optional AES encryption passphrase (10–79 characters).
+    ///   - pbKeyLen: AES key length in bytes (16 = AES-128, 24 = AES-192, 32 = AES-256).
+    ///              Only meaningful when `passphrase` is non-nil.
     ///   - latencyMs: Buffer latency in milliseconds (default 120ms).
     ///   - streamId: Optional stream routing identifier.
     func configureSRTOptions(
         mode: SRTMode,
         passphrase: String?,
+        pbKeyLen: Int,
         latencyMs: Int,
         streamId: String?
     )
@@ -232,6 +235,7 @@ extension EncoderBridge {
     func configureSRTOptions(
         mode: SRTMode,
         passphrase: String?,
+        pbKeyLen: Int,
         latencyMs: Int,
         streamId: String?
     ) {

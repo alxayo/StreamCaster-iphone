@@ -99,6 +99,11 @@ final class SRTEncoderBridge: EncoderBridge {
     /// Optional AES encryption passphrase (10–79 characters).
     private var srtPassphrase: String?
 
+    /// AES key length in bytes for SRT encryption (16/24/32).
+    /// Corresponds to libsrt's SRTO_PBKEYLEN socket option.
+    /// Only meaningful when `srtPassphrase` is non-nil.
+    private var srtPbKeyLen: Int = 32
+
     /// Buffer latency in milliseconds for jitter resilience.
     private var srtLatencyMs: Int = 120
 
@@ -242,16 +247,22 @@ final class SRTEncoderBridge: EncoderBridge {
     ///           rendezvous = simultaneous connect for NAT traversal).
     ///   - passphrase: AES encryption key (10–79 chars). Nil = no encryption.
     ///   - latencyMs: Jitter buffer in milliseconds. Higher = more resilient
+    ///   - passphrase: Optional AES encryption passphrase (10–79 characters).
+    ///   - pbKeyLen: AES key length in bytes (16 = AES-128, 24 = AES-192, 32 = AES-256).
+    ///              Only applied when `passphrase` is non-nil.
+    ///   - latencyMs: Buffer latency in milliseconds. Higher = more resilient
     ///                but more delay. Default 120ms works for most networks.
     ///   - streamId: Optional routing ID used by some SRT servers.
     func configureSRTOptions(
         mode: SRTMode,
         passphrase: String?,
+        pbKeyLen: Int,
         latencyMs: Int,
         streamId: String?
     ) {
         self.srtMode = mode
         self.srtPassphrase = passphrase
+        self.srtPbKeyLen = pbKeyLen
         self.srtLatencyMs = latencyMs
         self.srtStreamId = streamId
     }
@@ -364,6 +375,7 @@ final class SRTEncoderBridge: EncoderBridge {
                     streamKey: streamKey,
                     mode: srtMode,
                     passphrase: srtPassphrase,
+                    pbKeyLen: srtPbKeyLen,
                     latencyMs: srtLatencyMs,
                     streamId: srtStreamId
                 )
@@ -720,6 +732,8 @@ final class SRTEncoderBridge: EncoderBridge {
     ///   - streamKey: The stream identifier to append as `streamid`.
     ///   - mode: SRT connection mode (caller/listener/rendezvous).
     ///   - passphrase: Optional AES encryption passphrase.
+    ///   - pbKeyLen: AES key length in bytes (16/24/32). Only appended when
+    ///               `passphrase` is non-nil. Maps to libsrt's `SRTO_PBKEYLEN`.
     ///   - latencyMs: Buffer latency in milliseconds.
     ///   - streamId: Optional stream routing ID (overrides streamKey for streamid).
     /// - Returns: A `URL` with all options applied, or `nil` if malformed.
@@ -728,6 +742,7 @@ final class SRTEncoderBridge: EncoderBridge {
         streamKey: String,
         mode: SRTMode = .caller,
         passphrase: String? = nil,
+        pbKeyLen: Int = 32,
         latencyMs: Int = 120,
         streamId: String? = nil
     ) -> URL? {
@@ -758,6 +773,13 @@ final class SRTEncoderBridge: EncoderBridge {
         // The passphrase enables AES encryption on the SRT connection.
         if let passphrase, !passphrase.isEmpty, !existingKeys.contains("passphrase") {
             existingItems.append(URLQueryItem(name: "passphrase", value: passphrase))
+
+            // When encryption is active, also set the AES key length.
+            // pbkeylen tells libsrt how many bytes the AES key should be:
+            // 16 = AES-128, 24 = AES-192, 32 = AES-256.
+            if !existingKeys.contains("pbkeylen") {
+                existingItems.append(URLQueryItem(name: "pbkeylen", value: String(pbKeyLen)))
+            }
         }
 
         // Add stream ID. Priority: explicit srtStreamId > streamKey.

@@ -62,6 +62,12 @@ struct EndpointProfile: Identifiable, Codable, Equatable {
     /// This is separate from RTMP stream key authentication.
     var srtPassphrase: String?
 
+    /// The AES encryption key length used when `srtPassphrase` is set.
+    /// Determines the strength of the encryption: AES-128, AES-192, or AES-256.
+    /// Defaults to `.aes256` (the current industry standard).
+    /// Ignored when `srtPassphrase` is nil or empty (no encryption).
+    var srtKeyLength: SRTKeyLength = .aes256
+
     /// The SRT latency in milliseconds.
     /// Higher values provide more resilience to network jitter but increase delay.
     /// Default is 120ms — a good balance for most networks.
@@ -93,6 +99,7 @@ struct EndpointProfile: Identifiable, Codable, Equatable {
     ///   - videoCodec: Video codec to use (default: H.264).
     ///   - srtMode: SRT connection mode (default: caller).
     ///   - srtPassphrase: Optional SRT encryption passphrase.
+    ///   - srtKeyLength: AES key length for SRT encryption (default: AES-256).
     ///   - srtLatencyMs: SRT latency in milliseconds (default: 120).
     ///   - srtStreamId: Optional SRT stream routing ID.
     init(
@@ -106,6 +113,7 @@ struct EndpointProfile: Identifiable, Codable, Equatable {
         videoCodec: VideoCodec = .h264,
         srtMode: SRTMode = .caller,
         srtPassphrase: String? = nil,
+        srtKeyLength: SRTKeyLength = .aes256,
         srtLatencyMs: Int = 120,
         srtStreamId: String? = nil
     ) {
@@ -119,6 +127,7 @@ struct EndpointProfile: Identifiable, Codable, Equatable {
         self.videoCodec    = videoCodec
         self.srtMode       = srtMode
         self.srtPassphrase = srtPassphrase
+        self.srtKeyLength  = srtKeyLength
         self.srtLatencyMs  = srtLatencyMs
         self.srtStreamId   = srtStreamId
     }
@@ -148,7 +157,7 @@ struct EndpointProfile: Identifiable, Codable, Equatable {
         case id, name, rtmpUrl, streamKey
         case username, password, isDefault
         case videoCodec
-        case srtMode, srtPassphrase, srtLatencyMs, srtStreamId
+        case srtMode, srtPassphrase, srtKeyLength, srtLatencyMs, srtStreamId
     }
 
     /// Custom decoder that gracefully handles JSON from older app versions.
@@ -176,6 +185,7 @@ struct EndpointProfile: Identifiable, Codable, Equatable {
         // SRT fields — new in this version, won't exist in older JSON.
         srtMode       = try container.decodeIfPresent(SRTMode.self, forKey: .srtMode) ?? .caller
         srtPassphrase = try container.decodeIfPresent(String.self, forKey: .srtPassphrase)
+        srtKeyLength  = try container.decodeIfPresent(SRTKeyLength.self, forKey: .srtKeyLength) ?? .aes256
         srtLatencyMs  = try container.decodeIfPresent(Int.self, forKey: .srtLatencyMs) ?? 120
         srtStreamId   = try container.decodeIfPresent(String.self, forKey: .srtStreamId)
     }

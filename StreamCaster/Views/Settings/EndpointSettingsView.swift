@@ -166,6 +166,24 @@ struct EndpointSettingsView: View {
                     // Must be 10-79 characters if set; leave empty for no encryption.
                     SecureField("Passphrase (optional)", text: $viewModel.srtPassphrase)
 
+                    // Encryption strength picker — only shown when a passphrase is entered,
+                    // because without a passphrase there is no encryption to configure.
+                    // AES-256 is the industry standard default; AES-128 and AES-192 are
+                    // available for compatibility with servers that require a specific key size.
+                    if !viewModel.srtPassphrase.isEmpty {
+                        Picker("Encryption Strength", selection: $viewModel.srtKeyLength) {
+                            ForEach(SRTKeyLength.allCases, id: \.self) { keyLength in
+                                VStack(alignment: .leading) {
+                                    Text(keyLength.displayName)
+                                    Text(keyLength.subtitle)
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
+                                .tag(keyLength)
+                            }
+                        }
+                    }
+
                     // Latency stepper — controls the SRT receive buffer size.
                     // Higher values absorb more network jitter but add delay.
                     // Range: 20ms (aggressive) to 8000ms (very lossy networks).

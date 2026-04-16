@@ -402,6 +402,7 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         encoderBridge.configureSRTOptions(
             mode: profile.srtMode,
             passphrase: profile.srtPassphrase,
+            pbKeyLen: profile.srtKeyLength.pbKeyLenValue,
             latencyMs: profile.srtLatencyMs,
             streamId: profile.srtStreamId
         )

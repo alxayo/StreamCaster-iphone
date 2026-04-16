@@ -241,7 +241,7 @@ final class EndpointProfileTests: XCTestCase {
         let expectedKeys: Set<String> = [
             "id", "name", "rtmpUrl", "streamKey",
             "username", "password", "isDefault",
-            "videoCodec",
+            "videoCodec", "srtKeyLength",
             "srtMode", "srtLatencyMs",
             // srtPassphrase and srtStreamId are nil → omitted from JSON
         ]
@@ -286,5 +286,59 @@ final class EndpointProfileTests: XCTestCase {
         // `id` should still be the original value.
         XCTAssertEqual(profile.id, "permanent-id",
                        "The id must remain constant after mutation")
+    }
+
+    // MARK: - SRT Key Length Field
+
+    /// New profiles should default to AES-256 encryption.
+    /// This is the current industry standard for SRT encryption.
+    func testEndpointProfileDefaultsSrtKeyLengthToAes256() {
+        let profile = EndpointProfile(
+            id: "id", name: "name",
+            rtmpUrl: "srt://example.com", streamKey: "key"
+        )
+        XCTAssertEqual(profile.srtKeyLength, .aes256,
+                       "Default SRT key length should be AES-256")
+    }
+
+    /// SRT key length should survive a JSON encode → decode round-trip.
+    func testEndpointProfileCodableRoundTripWithSrtKeyLength() throws {
+        let original = EndpointProfile(
+            id: "srt-enc-test", name: "SRT Server",
+            rtmpUrl: "srt://srt.example.com:9000",
+            streamKey: "live",
+            srtPassphrase: "mysecretpass1234",
+            srtKeyLength: .aes128
+        )
+
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(EndpointProfile.self, from: data)
+
+        XCTAssertEqual(decoded.srtKeyLength, .aes128,
+                       "srtKeyLength should survive JSON round-trip")
+        XCTAssertEqual(decoded.srtPassphrase, "mysecretpass1234")
+    }
+
+    /// When JSON is missing the `srtKeyLength` key (e.g., data saved by
+    /// an older version), decoding should default to `.aes256`.
+    func testEndpointProfileDecodesLegacyJsonWithoutSrtKeyLength() throws {
+        // JSON that an older app version would have written — no srtKeyLength key.
+        let legacyJSON = """
+        {
+            "id": "legacy",
+            "name": "Old Profile",
+            "rtmpUrl": "srt://old.server.com:5000",
+            "streamKey": "oldkey",
+            "srtMode": "caller",
+            "srtLatencyMs": 200,
+            "srtPassphrase": "oldpassphrase1234",
+            "isDefault": false,
+            "videoCodec": "h264"
+        }
+        """.data(using: .utf8)!
+
+        let decoded = try JSONDecoder().decode(EndpointProfile.self, from: legacyJSON)
+        XCTAssertEqual(decoded.srtKeyLength, .aes256,
+                       "Legacy JSON without srtKeyLength should default to AES-256")
     }
 }
