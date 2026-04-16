@@ -105,6 +105,13 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     /// and the user would see a black screen.
     private weak var currentPreviewView: UIView?
 
+    /// Handle for the delayed "return to idle" task spawned by `stopStream()`.
+    ///
+    /// We store this so `startStream()` can cancel it if the user starts
+    /// a new stream before the 2-second delay expires. Without cancellation,
+    /// the delayed task could overwrite the new stream's state back to idle.
+    private var idleReturnTask: Task<Void, Never>?
+
     /// Repository for looking up RTMP endpoint profiles (server URL + stream key).
     private let profileRepository: EndpointProfileRepository
 
@@ -192,6 +199,13 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     ///   We NEVER accept raw credentials — only a profile ID.
     /// - Throws: If the profile doesn't exist or the connection fails.
     func startStream(profileId: String) async throws {
+        // Cancel any pending "return to idle" task from a previous stopStream().
+        // If the user starts a new stream before the 2-second delay expires,
+        // we don't want the delayed task to reset state back to idle and
+        // overwrite our new stream's state.
+        idleReturnTask?.cancel()
+        idleReturnTask = nil
+
         // Clear any previous error before attempting a fresh start.
         lastErrorMessage = nil
 
@@ -358,6 +372,10 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     /// It disconnects the encoder bridge, transitions state to .stopped,
     /// and then returns to .idle after a brief delay.
     ///
+    /// After releasing the old bridge, a fresh bridge is created immediately
+    /// so the camera preview comes back to life. Without this, the MTHKView
+    /// would show a frozen last frame until the user navigated away and back.
+    ///
     /// - Parameter reason: Why the stream is being stopped (user request, error, etc.).
     func stopStream(reason: StopReason) async {
         // Check if we're already idle — if so, do nothing.
@@ -384,6 +402,12 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         encoderBridge.detachCamera()
         encoderBridge.detachAudio()
         await encoderBridge.release()
+
+        // Immediately revive the camera preview so the user sees a live feed
+        // instead of a frozen last frame. This creates a fresh encoder bridge
+        // with a running mixer, re-attaches the preview view, re-attaches the
+        // camera, and applies the correct orientation.
+        await reviveIdlePreview()
 
         // Stop forwarding stats and reset the display to defaults.
         statsCancellable?.cancel()
@@ -641,6 +665,81 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         if shouldManageIdlePreviewCamera {
             encoderBridge.detachCamera()
         }
+    }
+
+    /// Revive the camera preview after a stream stops.
+    ///
+    /// **Why this is needed:**
+    /// When `stopStream()` calls `release()`, the encoder bridge's MediaMixer
+    /// shuts down — which means the MTHKView (Metal preview) stops receiving
+    /// camera frames and freezes on the last rendered frame. The bridge is
+    /// essentially dead at that point: its AVCaptureSession is stopped, the
+    /// preview is detached from the mixer, and orientation changes have no
+    /// effect.
+    ///
+    /// **What this method does:**
+    /// 1. Checks if the preview view still exists (it's a weak reference and
+    ///    SwiftUI may have dismantled it). If it's gone, marks `isPreviewing`
+    ///    as `false` and returns early — no point starting a mixer with no UI.
+    /// 2. Creates a fresh `HaishinKitEncoderBridge`. Each bridge's `init()`
+    ///    automatically starts its MediaMixer (and AVCaptureSession), so we
+    ///    get a running capture pipeline for free.
+    /// 3. Assigns the new bridge to `self.encoderBridge`.
+    /// 4. Attaches the existing preview view to the new bridge's mixer so
+    ///    the MTHKView starts receiving live frames again.
+    /// 5. Re-attaches the camera hardware with the user's stabilization pref.
+    /// 6. Resets and re-applies the video orientation so the preview matches
+    ///    the current device orientation (portrait/landscape/auto).
+    ///
+    /// **Why a fresh bridge instead of restarting the old one?**
+    /// The bridge's `init()` already wires up mixer → stream outputs and calls
+    /// `mixer.startRunning()`. Creating a new instance reuses this proven init
+    /// path. Adding a "restart" method would require new protocol surface area
+    /// and duplicate the init logic — more risk, no benefit.
+    ///
+    /// **Thread safety:**
+    /// This method is called on the `@MainActor` (the engine is `@MainActor`).
+    /// We capture the new bridge in a local variable and verify it's still the
+    /// current bridge after each `await` point, guarding against races where
+    /// `startStream()` might swap the bridge while we're awaiting camera setup.
+    private func reviveIdlePreview() async {
+        // If the preview view has been deallocated (SwiftUI dismantled it),
+        // there's nothing to revive. Mark isPreviewing as false so the UI
+        // state is accurate.
+        guard let previewView = currentPreviewView else {
+            isPreviewing = false
+            return
+        }
+
+        // Create a fresh bridge with a running mixer. The protocol type
+        // doesn't matter for idle preview — we just need a capture pipeline.
+        // HaishinKitEncoderBridge is the default (RTMP), and its init()
+        // starts the mixer automatically.
+        let newBridge = HaishinKitEncoderBridge()
+        self.encoderBridge = newBridge
+
+        // Wire the preview view to the new bridge's mixer so the MTHKView
+        // starts receiving live camera frames again (instead of showing the
+        // frozen last frame from the ended stream).
+        newBridge.attachPreview(previewView)
+        isPreviewing = true
+
+        // Re-attach the camera so the mixer has a video source.
+        // We check that the bridge hasn't been swapped by startStream()
+        // during the await — if it was, our work here is stale and we bail.
+        let device = resolveCurrentCamera()
+        await attachCameraWithStabilization(device)
+
+        // Safety check: if startStream() replaced the bridge while we were
+        // awaiting camera attachment, don't apply orientation to the wrong
+        // bridge.
+        guard self.encoderBridge === newBridge else { return }
+
+        // Reset orientation tracking and apply the correct orientation for
+        // the current device position. Without this, the preview would use
+        // whatever orientation was last set on the old (now-dead) bridge.
+        lastAppliedOrientation = nil
+        applyEffectiveOrientation()
     }
 
     private var shouldManageIdlePreviewCamera: Bool {
@@ -999,8 +1098,13 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
     /// After stopping, wait a short time then reset to .idle.
     /// This gives the UI a moment to show the "stopped" state
     /// (e.g., an error message) before clearing it.
+    ///
+    /// The task handle is stored in `idleReturnTask` so that
+    /// `startStream()` can cancel it if the user starts a new stream
+    /// before the delay expires.
     private func scheduleReturnToIdle() {
-        Task {
+        idleReturnTask?.cancel()
+        idleReturnTask = Task {
             // Capture the current session token to guard against races.
             // If the user starts a new stream within the 2-second window,
             // a new token is generated and this delayed reset is a no-op.
@@ -1008,6 +1112,9 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
 
             // Wait 2 seconds so the user can see why the stream stopped.
             try? await Task.sleep(nanoseconds: 2_000_000_000)
+
+            // Bail out if this task was cancelled (e.g., startStream was called).
+            guard !Task.isCancelled else { return }
 
             // Only reset if no new session has started since we stopped.
             let currentToken = await coordinator.currentSessionToken
