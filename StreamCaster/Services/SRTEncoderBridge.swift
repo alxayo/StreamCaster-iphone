@@ -105,6 +105,16 @@ final class SRTEncoderBridge: EncoderBridge {
     /// Optional stream routing ID (separate from the streamKey-based streamid).
     private var srtStreamId: String?
 
+    /// Handle for the async Task spawned by `connect()`.
+    ///
+    /// We store this so `disconnect()` and `release()` can cancel it.
+    /// Without this, a fire-and-forget connect Task can hang indefinitely
+    /// if the SRT server never responds — even after the engine gives up
+    /// waiting. If the zombie Task eventually succeeds, it would set
+    /// `isConnected = true` and start a stats timer on a bridge nobody
+    /// watches.
+    private var connectTask: Task<Void, Never>?
+
     // MARK: - Published Properties
 
     /// Whether the SRT connection is currently active.
@@ -332,7 +342,13 @@ final class SRTEncoderBridge: EncoderBridge {
     ///   - streamKey: The stream identifier used for server-side routing.
     func connect(url: String, streamKey: String) {
         #if canImport(HaishinKit) && canImport(SRTHaishinKit)
-        Task {
+        // Cancel any previous connect Task that may still be in-flight.
+        // This guards against connect() being called twice (e.g., during
+        // a reconnection sequence) — we don't want two Tasks racing to
+        // set isConnected and start stats timers.
+        connectTask?.cancel()
+
+        connectTask = Task {
             do {
                 // Build the full SRT URL with connection options and stream key.
                 // Options like latency, passphrase, and mode are baked into
@@ -350,6 +366,10 @@ final class SRTEncoderBridge: EncoderBridge {
                 // which includes encryption negotiation if a passphrase is set.
                 try await connection.connect(srtURL)
 
+                // If the Task was cancelled while we were connecting (e.g., the
+                // engine gave up after 8 seconds), don't mark as connected.
+                guard !Task.isCancelled else { return }
+
                 // Start publishing. SRT doesn't use a "stream name" like RTMP,
                 // but the publish() method still kicks off the MPEG-TS muxer
                 // and starts sending data over the connection.
@@ -361,6 +381,10 @@ final class SRTEncoderBridge: EncoderBridge {
                     self.startStatsTimer()
                 }
             } catch {
+                // If this was a cancellation (e.g., release() cancelled us),
+                // exit silently — don't log an error or update state.
+                guard !Task.isCancelled else { return }
+
                 await MainActor.run {
                     self.isConnected = false
                     self.streamStartDate = nil
@@ -380,6 +404,13 @@ final class SRTEncoderBridge: EncoderBridge {
     /// closes the SRT socket. The server will see a clean disconnect.
     func disconnect() {
         #if canImport(HaishinKit) && canImport(SRTHaishinKit)
+        // Cancel any in-flight connect Task before disconnecting.
+        // If the engine is calling disconnect() while connect() is still
+        // trying to establish the SRT handshake, this ensures the connect
+        // Task doesn't later set isConnected = true on a closed socket.
+        connectTask?.cancel()
+        connectTask = nil
+
         Task {
             // Close the stream first (stops the muxer and encoding pipeline).
             await stream.close()
@@ -625,6 +656,14 @@ final class SRTEncoderBridge: EncoderBridge {
     ///    contract consistent).
     func release() async {
         #if canImport(HaishinKit) && canImport(SRTHaishinKit)
+        // 0. Cancel any in-flight connect Task. If the engine timed out
+        //    waiting for the connection (8s) and called release(), the
+        //    connect Task may still be awaiting the SRT handshake. Without
+        //    cancelling it, the Task could later set isConnected = true
+        //    and start a stats timer on a bridge that nobody watches.
+        connectTask?.cancel()
+        connectTask = nil
+
         // 1. Detach the preview layer from the UI.
         detachPreview()
 

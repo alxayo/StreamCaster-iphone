@@ -28,6 +28,16 @@ final class HaishinKitEncoderBridge: EncoderBridge {
     /// Defaults to H.264 for maximum compatibility with all RTMP servers.
     private var configuredCodec: VideoCodec = .h264
 
+    /// Handle for the async Task spawned by `connect()`.
+    ///
+    /// We store this so `disconnect()` and `release()` can cancel it.
+    /// Without this, a fire-and-forget connect Task can hang indefinitely
+    /// if the RTMP server never responds — even after the engine gives up
+    /// waiting. If the zombie Task eventually succeeds, it would set
+    /// `isConnected = true` and start a stats timer on a bridge nobody
+    /// watches.
+    private var connectTask: Task<Void, Never>?
+
     @Published private(set) var isConnected = false
 
     @Published private(set) var latestStats = StreamStats()
@@ -197,16 +207,32 @@ final class HaishinKitEncoderBridge: EncoderBridge {
 
     func connect(url: String, streamKey: String) {
         #if canImport(HaishinKit) && canImport(RTMPHaishinKit)
-        Task {
+        // Cancel any previous connect Task that may still be in-flight.
+        // This guards against connect() being called twice (e.g., during
+        // a reconnection sequence) — we don't want two Tasks racing to
+        // set isConnected and start stats timers.
+        connectTask?.cancel()
+
+        connectTask = Task {
             do {
                 _ = try await connection.connect(url)
+
+                // If the Task was cancelled while we were connecting (e.g., the
+                // engine gave up after 8 seconds), don't proceed to publish.
+                guard !Task.isCancelled else { return }
+
                 _ = try await stream.publish(streamKey)
+
                 await MainActor.run {
                     self.isConnected = true
                     self.streamStartDate = Date()
                     self.startStatsTimer()
                 }
             } catch {
+                // If this was a cancellation (e.g., release() cancelled us),
+                // exit silently — don't log an error or update state.
+                guard !Task.isCancelled else { return }
+
                 await MainActor.run {
                     self.isConnected = false
                     self.streamStartDate = nil
@@ -222,6 +248,13 @@ final class HaishinKitEncoderBridge: EncoderBridge {
 
     func disconnect() {
         #if canImport(HaishinKit) && canImport(RTMPHaishinKit)
+        // Cancel any in-flight connect Task before disconnecting.
+        // If the engine is calling disconnect() while connect() is still
+        // trying to complete the RTMP handshake, this ensures the connect
+        // Task doesn't later set isConnected = true on a closed socket.
+        connectTask?.cancel()
+        connectTask = nil
+
         Task {
             _ = try? await stream.close()
             try? await connection.close()
@@ -364,6 +397,14 @@ final class HaishinKitEncoderBridge: EncoderBridge {
     /// 8. Release the fallback bridge.
     func release() async {
         #if canImport(HaishinKit) && canImport(RTMPHaishinKit)
+        // 0. Cancel any in-flight connect Task. If the engine timed out
+        //    waiting for the connection (8s) and called release(), the
+        //    connect Task may still be awaiting the RTMP handshake. Without
+        //    cancelling it, the Task could later set isConnected = true
+        //    and start a stats timer on a bridge that nobody watches.
+        connectTask?.cancel()
+        connectTask = nil
+
         // 1. Finish any in-progress recording so the MP4 is flushed to disk.
         if isRecording {
             try? await stopRecording()

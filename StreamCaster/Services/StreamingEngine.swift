@@ -312,6 +312,28 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         } catch {
             lastErrorMessage = "Failed to configure encoder settings."
 
+            // The new bridge (created at line 274) has the camera and audio
+            // attached but the connection never started. We must release it
+            // so its AVCaptureSession doesn't keep running and block future
+            // bridges from accessing the camera hardware.
+            encoderBridge.detachCamera()
+            encoderBridge.detachAudio()
+            await encoderBridge.release()
+
+            // Revive the idle preview so the user sees a live camera feed
+            // instead of a frozen frame from the failed stream attempt.
+            await reviveIdlePreview()
+
+            // Clean up stats and metadata the same way stopStream() does.
+            // Without this, stale profile info lingers in the UI.
+            statsCancellable?.cancel()
+            statsCancellable = nil
+            streamStats = StreamStats()
+            activeProfileName = nil
+            activeProtocol = nil
+            activeVideoCodec = nil
+            activeProtocolBadge = nil
+
             // If encoder setup fails, stop with an encoder error.
             let snapshot = await coordinator.stopSession(reason: .errorEncoder)
             applySnapshot(snapshot)
@@ -354,6 +376,28 @@ final class StreamingEngine: ObservableObject, StreamingEngineProtocol {
         let connected = await waitForEncoderConnection(timeoutMs: 8_000)
         guard connected else {
             lastErrorMessage = "Unable to connect to the endpoint. Check URL/stream key and network, then try again."
+
+            // The bridge has camera, audio, and a potentially-hanging connect
+            // Task attached. Release everything so the AVCaptureSession stops
+            // and the dangling connect Task is cancelled. This mirrors exactly
+            // what stopStream() does on a normal shutdown.
+            encoderBridge.detachCamera()
+            encoderBridge.detachAudio()
+            await encoderBridge.release()
+
+            // Revive the idle preview so the user sees live camera output
+            // instead of a frozen frame from the failed connection attempt.
+            await reviveIdlePreview()
+
+            // Clean up stats and metadata the same way stopStream() does.
+            // Without this, stale profile info lingers in the UI.
+            statsCancellable?.cancel()
+            statsCancellable = nil
+            streamStats = StreamStats()
+            activeProfileName = nil
+            activeProtocol = nil
+            activeVideoCodec = nil
+            activeProtocolBadge = nil
 
             let snapshot = await coordinator.stopSession(reason: .errorNetwork)
             applySnapshot(snapshot)
